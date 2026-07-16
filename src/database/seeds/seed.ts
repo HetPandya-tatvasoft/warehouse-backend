@@ -5,8 +5,6 @@ async function bootstrap() {
   await AppDataSource.initialize();
   await seedSuperAdmin(AppDataSource);
   await AppDataSource.destroy();
-
-  console.log('Seeding completed');
 }
 
 bootstrap()

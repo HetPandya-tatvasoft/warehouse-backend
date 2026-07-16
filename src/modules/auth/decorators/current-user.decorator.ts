@@ -1,5 +1,6 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { ICurrentUserData } from '../types/jwt-payload.interface';
+import type { ExecutionContext } from '@nestjs/common';
+import { createParamDecorator } from '@nestjs/common';
+import type { ICurrentUserData } from '../types/jwt-payload.interface';
 
 interface AuthenticatedRequest {
   user: ICurrentUserData;

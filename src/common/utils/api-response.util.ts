@@ -1,4 +1,4 @@
-import { IApiSuccessResponse } from '../types/api-response.interface';
+import type { IApiSuccessResponse } from '../types/api-response.interface';
 
 export class ApiResponseUtil {
   static success<T>(data: T, message?: string): IApiSuccessResponse<T> {

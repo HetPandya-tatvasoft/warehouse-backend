@@ -10,11 +10,6 @@ import { Page } from '../modules/roles-and-permissions/entities/page.entity';
 import { PageAccess } from '../modules/roles-and-permissions/entities/page-access.entity';
 import { RolePageRight } from '../modules/roles-and-permissions/entities/role-page-right.entity';
 
-console.log({
-  user: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-});
-
 const AppDataSource = new DataSource({
   type: 'postgres',
 

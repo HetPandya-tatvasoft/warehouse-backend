@@ -1,7 +1,7 @@
 import { Role } from '@/modules/roles-and-permissions/entities/role.entity';
 import { UserRole } from '@/modules/users/entities/user-role.entity';
 import { User } from '@/modules/users/entities/user.entity';
-import { DataSource } from 'typeorm';
+import type { DataSource } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
 export async function seedSuperAdmin(dataSource: DataSource): Promise<void> {

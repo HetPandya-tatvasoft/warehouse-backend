@@ -49,11 +49,16 @@ export class AuthController {
 
   @Post('logout')
   async logout(@RefreshToken() refreshToken: string, @Res({ passthrough: true }) response: Response) {
-    await this.authService.logout(refreshToken);
-
-    response.clearCookie(COOKIE_NAMES.ACCESS_TOKEN);
-
-    response.clearCookie(COOKIE_NAMES.REFRESH_TOKEN);
+    try {
+      if (refreshToken) {
+        await this.authService.logout(refreshToken);
+      }
+    } catch {
+      // Proceed with clearing cookies even if DB revocation throws an error
+    } finally {
+      response.clearCookie(COOKIE_NAMES.ACCESS_TOKEN, ACCESS_COOKIE_OPTIONS);
+      response.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, REFRESH_COOKIE_OPTIONS);
+    }
 
     return ApiResponseUtil.success<null>(null, 'Logout Successful');
   }

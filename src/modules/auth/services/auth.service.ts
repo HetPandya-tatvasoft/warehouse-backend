@@ -1,6 +1,8 @@
 import { UserRepository } from '@/modules/users/repositories/user.repository';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { UserMapper } from '../../users/mappers/user.mapper';
+import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { ConfigService } from '@nestjs/config';
@@ -27,6 +29,10 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Invalid Credentials');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is deactivated');
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
@@ -58,7 +64,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user,
+      user: UserMapper.toAuthUserDto(user),
     };
   }
 
@@ -84,19 +90,18 @@ export class AuthService {
   }
 
   private async createRefreshTokenSession(userId: string, manager?: EntityManager): Promise<string> {
+    const tokenId = randomUUID();
+    const refreshToken = await this.generateRefreshToken(userId, tokenId);
+    const refreshTokenHash = await this.hashRefreshToken(refreshToken);
     const refreshTokenExpiresAt = this.getRefreshTokenExpiryDate();
-    const refreshTokenRecord = await this.refreshTokenRepository.createRefreshToken(
+
+    await this.refreshTokenRepository.createRefreshToken(
+      tokenId,
       userId,
-      '',
+      refreshTokenHash,
       refreshTokenExpiresAt,
       manager,
     );
-
-    const refreshToken = await this.generateRefreshToken(userId, refreshTokenRecord.id);
-
-    const refreshTokenHash = await this.hashRefreshToken(refreshToken);
-
-    await this.refreshTokenRepository.updateRefreshTokenHash(refreshTokenRecord.id, refreshTokenHash, manager);
 
     return refreshToken;
   }
@@ -147,6 +152,10 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('User account is deactivated');
+    }
+
     const newRefreshToken = await this.rotateRefreshToken(user.id, refreshTokenRecord!.id);
 
     const accessToken = await this.generateAccessToken(user);
@@ -154,7 +163,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken: newRefreshToken,
-      user,
+      user: UserMapper.toAuthUserDto(user),
     };
   }
 

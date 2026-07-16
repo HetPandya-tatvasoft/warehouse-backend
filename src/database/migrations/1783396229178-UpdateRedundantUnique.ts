@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class UpdateRedundantUnique1783396229178 implements MigrationInterface {
   name = 'UpdateRedundantUnique1783396229178';

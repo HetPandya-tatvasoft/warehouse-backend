@@ -14,6 +14,7 @@ export class RefreshTokenRepository {
   ) {}
 
   async createRefreshToken(
+    id: string,
     userId: string,
     tokenHash: string,
     expiresAt: Date,
@@ -22,6 +23,7 @@ export class RefreshTokenRepository {
     const repository = manager ? manager.getRepository(RefreshToken) : this.repository;
 
     const refreshToken = repository.create({
+      id,
       userId,
       tokenHash,
       expiresAt,
