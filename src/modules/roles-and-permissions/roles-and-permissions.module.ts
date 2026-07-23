@@ -5,9 +5,14 @@ import { Permission } from './entities/permission.entity';
 import { Page } from './entities/page.entity';
 import { PageAccess } from './entities/page-access.entity';
 import { RolePageRight } from './entities/role-page-right.entity';
+import { RoleRepository } from './repositories/role.repository';
+import { RoleService } from './services/role.service';
+import { RoleController } from './controllers/role.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Role, Permission, Page, PageAccess, RolePageRight])],
-  exports: [TypeOrmModule],
+  controllers: [RoleController],
+  providers: [RoleRepository, RoleService],
+  exports: [RoleRepository, RoleService, TypeOrmModule],
 })
 export class RolesAndPermissionsModule {}

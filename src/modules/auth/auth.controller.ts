@@ -28,17 +28,22 @@ export class AuthController {
 
   @Post('refresh-token')
   async refreshToken(@RefreshToken() refreshToken: string, @Res({ passthrough: true }) response: Response) {
-    const {
-      accessToken: generatedAccessToken,
-      refreshToken: generatedRefreshToken,
-      user,
-    } = await this.authService.refreshToken(refreshToken);
+    try {
+      const {
+        accessToken: generatedAccessToken,
+        refreshToken: generatedRefreshToken,
+        user,
+      } = await this.authService.refreshToken(refreshToken);
 
-    response.cookie(COOKIE_NAMES.ACCESS_TOKEN, generatedAccessToken, ACCESS_COOKIE_OPTIONS);
+      response.cookie(COOKIE_NAMES.ACCESS_TOKEN, generatedAccessToken, ACCESS_COOKIE_OPTIONS);
+      response.cookie(COOKIE_NAMES.REFRESH_TOKEN, generatedRefreshToken, REFRESH_COOKIE_OPTIONS);
 
-    response.cookie(COOKIE_NAMES.REFRESH_TOKEN, generatedRefreshToken, REFRESH_COOKIE_OPTIONS);
-
-    return ApiResponseUtil.success(user, 'Token refreshed Successfully');
+      return ApiResponseUtil.success(user, 'Token refreshed Successfully');
+    } catch (error) {
+      response.clearCookie(COOKIE_NAMES.ACCESS_TOKEN, ACCESS_COOKIE_OPTIONS);
+      response.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, REFRESH_COOKIE_OPTIONS);
+      throw error;
+    }
   }
 
   @Get('me')

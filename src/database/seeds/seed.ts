@@ -1,10 +1,26 @@
-import AppDataSource from '../data-source';
-import { seedSuperAdmin } from './super-admin.seed';
+import { NestFactory } from '@nestjs/core';
+import { SeederModule } from './authorization/seeder.module';
+import { SuperAdminSeeder } from './super-admin.seed';
+import { TenantUserSeeder } from './tenant-users.seed';
 
 async function bootstrap() {
-  await AppDataSource.initialize();
-  await seedSuperAdmin(AppDataSource);
-  await AppDataSource.destroy();
+  console.log('Bootstrapping NestJS application context for seeding...');
+  const appContext = await NestFactory.createApplicationContext(SeederModule);
+
+  try {
+    const superAdminSeeder = appContext.get(SuperAdminSeeder);
+    const tenantUserSeeder = appContext.get(TenantUserSeeder);
+
+    console.log('Running Super Admin Seeder...');
+    await superAdminSeeder.seed();
+
+    console.log('Running Tenant User Seeder...');
+    await tenantUserSeeder.seed();
+
+    console.log('Seeding completed successfully.');
+  } finally {
+    await appContext.close();
+  }
 }
 
 bootstrap()

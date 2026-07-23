@@ -1,0 +1,4 @@
+export enum PlatformRoleCodes {
+  PLATFORM_SUPER_ADMIN = 'PLATFORM_SUPER_ADMIN',
+  TENANT_ADMIN = 'ADMIN',
+}
