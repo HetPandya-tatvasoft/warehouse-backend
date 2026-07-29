@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, ILike, FindOptionsWhere } from 'typeorm';
+import { Repository, IsNull, ILike, FindOptionsWhere, EntityManager } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../entities/user-role.entity';
 
@@ -13,8 +13,9 @@ export class UserRepository {
     private readonly userRoleRepository: Repository<UserRole>,
   ) {}
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.repository.findOne({
+  async findByEmail(email: string, manager?: EntityManager): Promise<User | null> {
+    const repo = manager ? manager.getRepository(User) : this.repository;
+    return repo.findOne({
       where: { email: email.toLowerCase() },
       relations: {
         userRoles: {
@@ -24,13 +25,14 @@ export class UserRepository {
     });
   }
 
-  async findById(id: string, tenantId?: string | null): Promise<User | null> {
+  async findById(id: string, tenantId?: string | null, manager?: EntityManager): Promise<User | null> {
+    const repo = manager ? manager.getRepository(User) : this.repository;
     const whereCondition: FindOptionsWhere<User> = { id };
     if (tenantId !== undefined) {
       whereCondition.tenantId = tenantId ?? IsNull();
     }
 
-    return this.repository.findOne({
+    return repo.findOne({
       where: whereCondition,
       relations: {
         userRoles: {
@@ -47,14 +49,16 @@ export class UserRepository {
     sortBy: keyof User = 'createdAt',
     sortOrder: 'ASC' | 'DESC' = 'DESC',
     search?: string,
+    manager?: EntityManager,
   ): Promise<[User[], number]> {
+    const repo = manager ? manager.getRepository(User) : this.repository;
     const whereCondition: FindOptionsWhere<User> = {
       tenantId: tenantId ?? IsNull(),
     };
 
     if (search && search.trim() !== '') {
       const searchTerm = `%${search.trim()}%`;
-      return this.repository.findAndCount({
+      return repo.findAndCount({
         where: [
           { ...whereCondition, email: ILike(searchTerm) },
           { ...whereCondition, firstName: ILike(searchTerm) },
@@ -73,7 +77,7 @@ export class UserRepository {
       });
     }
 
-    return this.repository.findAndCount({
+    return repo.findAndCount({
       where: whereCondition,
       relations: {
         userRoles: {
@@ -88,21 +92,24 @@ export class UserRepository {
     });
   }
 
-  async createUserWithRoles(userData: Partial<User>, roleIds: string[]): Promise<User> {
-    const user = this.repository.create(userData);
-    const savedUser = await this.repository.save(user);
+  async createUserWithRoles(userData: Partial<User>, roleIds: string[], manager?: EntityManager): Promise<User> {
+    const repo = manager ? manager.getRepository(User) : this.repository;
+    const userRoleRepo = manager ? manager.getRepository(UserRole) : this.userRoleRepository;
+
+    const user = repo.create(userData);
+    const savedUser = await repo.save(user);
 
     if (roleIds && roleIds.length > 0) {
       const userRoles = roleIds.map((roleId) =>
-        this.userRoleRepository.create({
+        userRoleRepo.create({
           userId: savedUser.id,
           roleId,
         }),
       );
-      await this.userRoleRepository.save(userRoles);
+      await userRoleRepo.save(userRoles);
     }
 
-    return this.findById(savedUser.id, savedUser.tenantId) as Promise<User>;
+    return (await this.findById(savedUser.id, savedUser.tenantId, manager)) as User;
   }
 
   async updateUserWithRoles(
@@ -110,48 +117,59 @@ export class UserRepository {
     userData: Partial<User>,
     roleIds?: string[],
     tenantId?: string | null,
+    manager?: EntityManager,
   ): Promise<User | null> {
-    const existingUser = await this.findById(userId, tenantId);
+    const repo = manager ? manager.getRepository(User) : this.repository;
+    const userRoleRepo = manager ? manager.getRepository(UserRole) : this.userRoleRepository;
+
+    const existingUser = await this.findById(userId, tenantId, manager);
     if (!existingUser) {
       return null;
     }
 
     // Update basic user properties
     if (Object.keys(userData).length > 0) {
-      await this.repository.update(userId, userData);
+      await repo.update(userId, userData);
     }
 
     // Update roles if roleIds array is passed
     if (roleIds !== undefined) {
       // Remove existing roles
-      await this.userRoleRepository.delete({ userId });
+      await userRoleRepo.delete({ userId });
 
       // Insert new roles
       if (roleIds.length > 0) {
         const newUserRoles = roleIds.map((roleId) =>
-          this.userRoleRepository.create({
+          userRoleRepo.create({
             userId,
             roleId,
           }),
         );
-        await this.userRoleRepository.save(newUserRoles);
+        await userRoleRepo.save(newUserRoles);
       }
     }
 
-    return this.findById(userId, tenantId);
+    return await this.findById(userId, tenantId, manager);
   }
 
-  async updateStatus(userId: string, isActive: boolean, tenantId?: string | null): Promise<boolean> {
+  async updateStatus(
+    userId: string,
+    isActive: boolean,
+    tenantId?: string | null,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    const repo = manager ? manager.getRepository(User) : this.repository;
     const whereCondition: FindOptionsWhere<User> = { id: userId };
     if (tenantId !== undefined) {
       whereCondition.tenantId = tenantId ?? IsNull();
     }
 
-    const result = await this.repository.update(whereCondition, { isActive });
+    const result = await repo.update(whereCondition, { isActive });
     return (result.affected ?? 0) > 0;
   }
 
-  async save(user: User): Promise<User> {
-    return this.repository.save(user);
+  async save(user: User, manager?: EntityManager): Promise<User> {
+    const repo = manager ? manager.getRepository(User) : this.repository;
+    return repo.save(user);
   }
 }

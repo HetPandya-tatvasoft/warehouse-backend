@@ -1,25 +1,20 @@
-import { Controller, Post, Body, Get, UseGuards, Res, UnauthorizedException } from '@nestjs/common';
-import { AuthService } from './services/auth.service';
-import { UserRepository } from '../../modules/users/repositories/user.repository';
-import { PermissionService } from '../../modules/roles-and-permissions/services/permission.service';
+import { Controller, Post, Body, Get, UseGuards, Res } from '@nestjs/common';
+import { AuthService } from '../services/auth.service';
 
-import { LoginDto } from './dto/login.dto';
-import { JWTAuthGuard } from './guards/jwt-auth.guard';
-import { CurrentUser } from './decorators/current-user.decorator';
-import type { ICurrentUserData } from './types/jwt-payload.interface';
+import { LoginDto } from '../dto/login.dto';
+import { JWTAuthGuard } from '../guards/jwt-auth.guard';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import type { ICurrentUserData } from '../types/jwt-payload.interface';
 import type { Response } from 'express';
-import { RefreshToken } from './decorators/refresh-token.decorator';
+import { RefreshToken } from '../decorators/refresh-token.decorator';
 import { ApiResponseUtil } from '@/common/utils/api-response.util';
 import { COOKIE_NAMES } from '@/common/constants/cookie.constants';
 import { ACCESS_COOKIE_OPTIONS, REFRESH_COOKIE_OPTIONS } from '@/config/cookie.config';
+import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly userRepository: UserRepository,
-    private readonly permissionService: PermissionService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
@@ -29,7 +24,7 @@ export class AuthController {
 
     response.cookie(COOKIE_NAMES.REFRESH_TOKEN, refreshToken, REFRESH_COOKIE_OPTIONS);
 
-    return ApiResponseUtil.success(user, 'Login Successful');
+    return ApiResponseUtil.success(user, RESPONSE_MESSAGES.AUTH.LOGIN_SUCCESS);
   }
 
   @Post('refresh-token')
@@ -44,7 +39,7 @@ export class AuthController {
       response.cookie(COOKIE_NAMES.ACCESS_TOKEN, generatedAccessToken, ACCESS_COOKIE_OPTIONS);
       response.cookie(COOKIE_NAMES.REFRESH_TOKEN, generatedRefreshToken, REFRESH_COOKIE_OPTIONS);
 
-      return ApiResponseUtil.success(user, 'Token refreshed Successfully');
+      return ApiResponseUtil.success(user, RESPONSE_MESSAGES.AUTH.TOKEN_REFRESH_SUCCESS);
     } catch (error) {
       response.clearCookie(COOKIE_NAMES.ACCESS_TOKEN, ACCESS_COOKIE_OPTIONS);
       response.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, REFRESH_COOKIE_OPTIONS);
@@ -55,24 +50,9 @@ export class AuthController {
   @Get('me')
   @UseGuards(JWTAuthGuard)
   async getProfile(@CurrentUser() user: ICurrentUserData) {
-    const dbUser = await this.userRepository.findById(user.userId, user.tenantId);
-    if (!dbUser) {
-      throw new UnauthorizedException('User not found');
-    }
+    const profile = await this.authService.getProfile(user);
 
-    const permissions = await this.permissionService.getEffectivePermissions(user);
-
-    return ApiResponseUtil.success(
-      {
-        id: dbUser.id,
-        firstName: dbUser.firstName,
-        lastName: dbUser.lastName,
-        email: dbUser.email,
-        tenantId: dbUser.tenantId ?? null,
-        permissions,
-      },
-      'User fetched successfully',
-    );
+    return ApiResponseUtil.success(profile, RESPONSE_MESSAGES.USER.FETCH_SUCCESS);
   }
 
   @Post('logout')
@@ -88,6 +68,6 @@ export class AuthController {
       response.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, REFRESH_COOKIE_OPTIONS);
     }
 
-    return ApiResponseUtil.success<null>(null, 'Logout Successful');
+    return ApiResponseUtil.success<null>(null, RESPONSE_MESSAGES.AUTH.LOGOUT_SUCCESS);
   }
 }

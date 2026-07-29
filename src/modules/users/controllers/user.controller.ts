@@ -10,6 +10,7 @@ import { ApiResponseUtil } from '@/common/utils/api-response.util';
 import { PermissionsGuard } from '@/modules/roles-and-permissions/guards/permissions.guard';
 import { Permissions } from '@/modules/roles-and-permissions/decorators/permissions.decorator';
 import { Page, Permission } from '@/modules/roles-and-permissions/enums/permissions.enum';
+import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
 
 @Controller('users')
 @UseGuards(JWTAuthGuard, PermissionsGuard)
@@ -20,21 +21,21 @@ export class UserController {
   @Permissions(Page.Users, Permission.CREATE)
   async createUser(@Body() createUserDto: CreateUserDto, @CurrentUser() user: ICurrentUserData) {
     const createdUser = await this.userService.createUser(createUserDto, user);
-    return ApiResponseUtil.success(createdUser, 'User created successfully');
+    return ApiResponseUtil.success(createdUser, RESPONSE_MESSAGES.USER.CREATE_SUCCESS);
   }
 
   @Get()
   @Permissions(Page.Users, Permission.VIEW)
   async getUsersPaginated(@CurrentUser() user: ICurrentUserData, @Query() paginationQuery: UserPaginationQueryDto) {
     const result = await this.userService.getUsersPaginated(user, paginationQuery);
-    return ApiResponseUtil.success(result, 'Users fetched successfully');
+    return ApiResponseUtil.success(result, RESPONSE_MESSAGES.USER.FETCH_ALL_SUCCESS);
   }
 
   @Get(':id')
   @Permissions(Page.Users, Permission.VIEW)
   async getUserById(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: ICurrentUserData) {
     const foundUser = await this.userService.getUserById(id, user);
-    return ApiResponseUtil.success(foundUser, 'User fetched successfully');
+    return ApiResponseUtil.success(foundUser, RESPONSE_MESSAGES.USER.FETCH_SUCCESS);
   }
 
   @Put(':id')
@@ -45,7 +46,7 @@ export class UserController {
     @CurrentUser() user: ICurrentUserData,
   ) {
     const updatedUser = await this.userService.updateUser(id, updateUserDto, user);
-    return ApiResponseUtil.success(updatedUser, 'User updated successfully');
+    return ApiResponseUtil.success(updatedUser, RESPONSE_MESSAGES.USER.UPDATE_SUCCESS);
   }
 
   @Patch(':id/status')
@@ -56,6 +57,6 @@ export class UserController {
     @CurrentUser() user: ICurrentUserData,
   ) {
     const updatedUser = await this.userService.toggleUserStatus(id, isActive, user);
-    return ApiResponseUtil.success(updatedUser, 'User status updated successfully');
+    return ApiResponseUtil.success(updatedUser, RESPONSE_MESSAGES.USER.STATUS_UPDATE_SUCCESS);
   }
 }

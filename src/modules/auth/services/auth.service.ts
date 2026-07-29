@@ -7,12 +7,15 @@ import * as bcrypt from 'bcrypt';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { ConfigService } from '@nestjs/config';
 import { IAccessTokenPayload, IRefreshTokenPayload } from '../types/jwt-payload.interface';
+import type { ICurrentUserData } from '../types/jwt-payload.interface';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 import { AUTH_CONSTANTS } from '@/common/constants/auth.constants';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { User } from '@/modules/users/entities/user.entity';
 import { DataSource, EntityManager } from 'typeorm';
 import ms, { StringValue } from 'ms';
+import { PermissionService } from '@/modules/roles-and-permissions/services/permission.service';
+import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class AuthService {
@@ -22,23 +25,24 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly dataSource: DataSource,
+    private readonly permissionService: PermissionService,
   ) {}
 
   async validateUser(email: string, password: string) {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new UnauthorizedException('Invalid Credentials');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('User account is deactivated');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.DEACTIVATED);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid Credentials');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
 
     return user;
@@ -119,22 +123,22 @@ export class AuthService {
         secret: this.configService.getOrThrow('JWT_REFRESH_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
     }
   }
 
   private async validateStoredRefreshToken(token: string, refreshTokenRecord: RefreshToken | null): Promise<void> {
     if (!refreshTokenRecord) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
     } else if (refreshTokenRecord.revokedAt) {
-      throw new UnauthorizedException('Refresh token revoked');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.REFRESH_TOKEN_REVOKED);
     } else if (refreshTokenRecord.expiresAt < new Date()) {
-      throw new UnauthorizedException('Refresh token expired');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.REFRESH_TOKEN_EXPIRED);
     }
 
     const isTokenValid = await bcrypt.compare(token, refreshTokenRecord.tokenHash);
     if (!isTokenValid) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
     }
   }
 
@@ -149,11 +153,11 @@ export class AuthService {
     const user = await this.userRepository.findById(payload.sub);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.USER.NOT_FOUND);
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('User account is deactivated');
+      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.DEACTIVATED);
     }
 
     const newRefreshToken = await this.rotateRefreshToken(user.id, refreshTokenRecord!.id);
@@ -175,5 +179,23 @@ export class AuthService {
     await this.validateStoredRefreshToken(refreshToken, refreshTokenRecord);
 
     await this.refreshTokenRepository.revoke(refreshTokenRecord!.id);
+  }
+
+  async getProfile(user: ICurrentUserData) {
+    const dbUser = await this.userRepository.findById(user.userId, user.tenantId);
+    if (!dbUser) {
+      throw new UnauthorizedException(RESPONSE_MESSAGES.USER.NOT_FOUND);
+    }
+
+    const permissions = await this.permissionService.getEffectivePermissions(user);
+
+    return {
+      id: dbUser.id,
+      firstName: dbUser.firstName,
+      lastName: dbUser.lastName,
+      email: dbUser.email,
+      tenantId: dbUser.tenantId ?? null,
+      permissions,
+    };
   }
 }

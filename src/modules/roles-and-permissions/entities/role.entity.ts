@@ -1,7 +1,8 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 
 import { Tenant } from '../../tenants/entities/tenant.entity';
 import { AuditableEntity } from '@/common/entities/auditable.entity';
+import { UserRole } from '../../users/entities/user-role.entity';
 
 // Unique index to keep unique roles per tenant
 @Index('uq_roles_tenant_name', ['tenantId', 'name'], {
@@ -44,4 +45,7 @@ export class Role extends AuditableEntity {
     default: false,
   })
   isDeleted!: boolean;
+
+  @OneToMany(() => UserRole, (userRole) => userRole.role)
+  userRoles!: UserRole[];
 }

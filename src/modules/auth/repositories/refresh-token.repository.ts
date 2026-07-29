@@ -1,6 +1,3 @@
-// Methods to include in this repository
-// create, findById, revoke, revokeAllByUserId
-
 import { EntityManager, IsNull, Repository } from 'typeorm';
 import { RefreshToken } from '../entities/refresh-token.entity';
 import { Injectable } from '@nestjs/common';

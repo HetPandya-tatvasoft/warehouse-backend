@@ -11,6 +11,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { VALIDATION_MESSAGES } from '@/common/constants/messages.constants';
 
 export class CreateUserDto {
   @IsEmail()
@@ -21,7 +22,7 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @MinLength(8, { message: VALIDATION_MESSAGES.USER.PASSWORD_LENGTH })
   @MaxLength(100)
   password!: string;
 
@@ -38,8 +39,8 @@ export class CreateUserDto {
   lastName!: string;
 
   @IsArray()
-  @ArrayMinSize(1, { message: 'At least one role must be assigned to the user' })
-  @IsUUID('4', { each: true, message: 'Each role ID must be a valid UUID' })
+  @ArrayMinSize(1, { message: VALIDATION_MESSAGES.USER.ASSIGNED_ROLES })
+  @IsUUID('4', { each: true, message: VALIDATION_MESSAGES.USER.ROLE_ID_UUID })
   roleIds!: string[];
 
   @IsOptional()

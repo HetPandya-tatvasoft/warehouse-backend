@@ -1,5 +1,6 @@
 import { Transform } from 'class-transformer';
 import { ArrayMinSize, IsArray, IsBoolean, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { VALIDATION_MESSAGES } from '@/common/constants/messages.constants';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -16,8 +17,8 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsArray()
-  @ArrayMinSize(1, { message: 'At least one role must be assigned to the user' })
-  @IsUUID('4', { each: true, message: 'Each role ID must be a valid UUID' })
+  @ArrayMinSize(1, { message: VALIDATION_MESSAGES.USER.ASSIGNED_ROLES })
+  @IsUUID('4', { each: true, message: VALIDATION_MESSAGES.USER.ROLE_ID_UUID })
   roleIds?: string[];
 
   @IsOptional()

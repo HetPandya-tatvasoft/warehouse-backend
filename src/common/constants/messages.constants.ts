@@ -1,0 +1,65 @@
+export const RESPONSE_MESSAGES = {
+  AUTH: {
+    LOGIN_SUCCESS: 'Login Successful',
+    LOGOUT_SUCCESS: 'Logout Successful',
+    TOKEN_REFRESH_SUCCESS: 'Token refreshed Successfully',
+    INVALID_CREDENTIALS: 'Invalid Credentials',
+    DEACTIVATED: 'User account is deactivated',
+    INVALID_REFRESH_TOKEN: 'Invalid refresh token',
+    REFRESH_TOKEN_REVOKED: 'Refresh token revoked',
+    REFRESH_TOKEN_EXPIRED: 'Refresh token expired',
+  },
+  USER: {
+    CREATE_SUCCESS: 'User created successfully',
+    FETCH_SUCCESS: 'User fetched successfully',
+    FETCH_ALL_SUCCESS: 'Users fetched successfully',
+    UPDATE_SUCCESS: 'User updated successfully',
+    STATUS_UPDATE_SUCCESS: 'User status updated successfully',
+    NOT_FOUND: 'User not found',
+    EMAIL_EXISTS: 'User with this email already exists',
+    CANNOT_SELF_DEACTIVATE: 'You cannot deactivate your own account',
+    CANNOT_SELF_UPDATE: 'You cannot update your own account',
+    UNAUTHORIZED: 'User is not authenticated',
+  },
+  ROLE: {
+    CREATE_SUCCESS: 'Role created successfully',
+    FETCH_SUCCESS: 'Role fetched successfully',
+    FETCH_ALL_SUCCESS: 'Roles fetched successfully',
+    UPDATE_SUCCESS: 'Role updated successfully',
+    DELETE_SUCCESS: 'Role deleted successfully',
+    PAGE_RIGHTS_FETCH_SUCCESS: 'Page rights fetched successfully',
+    PAGE_RIGHTS_UPDATE_SUCCESS: 'Page rights updated successfully',
+    NOT_FOUND: 'Role not found',
+    NOT_FOUND_IN_TENANT: (roleId: string) => `Role with ID '${roleId}' not found in tenant`,
+    NAME_EXISTS: 'Role with name already exists',
+    SYSTEM_ROLES_NO_DELETE: 'System roles cannot be deleted',
+    PAGE_ACCESS_INVALID: 'One or more pageAccessIds are invalid',
+  },
+  TENANT: {
+    ONBOARD_SUCCESS: 'Tenant onboarded successfully.',
+    FETCH_ALL_SUCCESS: 'Tenants fetched successfully.',
+  },
+  COMMON: {
+    FORBIDDEN: 'You do not have permission to access this resource',
+    INTERNAL_SERVER_ERROR: 'Internal server error',
+    VALIDATION_FAILED: 'Validation failed',
+    SMTP_VERIFICATION_FAILED: 'SMTP connection verification failed.',
+    SMTP_SUCCESS: 'SMTP connection established successfully.',
+    EMAIL_SEND_FAILED: 'Failed to send email.',
+    EMAIL_SEND_ERROR: 'Unable to send email.',
+  },
+} as const;
+
+export const VALIDATION_MESSAGES = {
+  USER: {
+    PASSWORD_LENGTH: 'Password must be at least 8 characters long',
+    ASSIGNED_ROLES: 'At least one role must be assigned to the user',
+    ROLE_ID_UUID: 'Each role ID must be a valid UUID',
+  },
+  TENANT: {
+    SLUG_FORMAT: 'Slug must contain only lowercase letters, numbers, and hyphens',
+    CITY_ALLOWED: 'City must be one of the allowed cities',
+    STATE_ALLOWED: 'State must be one of the allowed states',
+    COUNTRY_ALLOWED: 'Country must be one of the allowed countries',
+  },
+} as const;

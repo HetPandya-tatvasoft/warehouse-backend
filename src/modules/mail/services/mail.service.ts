@@ -4,6 +4,7 @@ import { createTransport, type Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 import type { ISendMailOptions } from '../interfaces/mail.interface';
+import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class MailService implements OnModuleInit {
@@ -38,9 +39,12 @@ export class MailService implements OnModuleInit {
     try {
       await this.transporter.verify();
 
-      this.logger.log('SMTP connection established successfully.');
+      this.logger.log(RESPONSE_MESSAGES.COMMON.SMTP_SUCCESS);
     } catch (error) {
-      this.logger.error('SMTP connection verification failed.', error instanceof Error ? error.stack : String(error));
+      this.logger.error(
+        RESPONSE_MESSAGES.COMMON.SMTP_VERIFICATION_FAILED,
+        error instanceof Error ? error.stack : String(error),
+      );
 
       throw error;
     }
@@ -61,9 +65,12 @@ export class MailService implements OnModuleInit {
 
       this.logger.log(`Email sent successfully to ${recipients}`);
     } catch (error) {
-      this.logger.error('Failed to send email.', error instanceof Error ? error.stack : String(error));
+      this.logger.error(
+        RESPONSE_MESSAGES.COMMON.EMAIL_SEND_FAILED,
+        error instanceof Error ? error.stack : String(error),
+      );
 
-      throw new InternalServerErrorException('Unable to send email.');
+      throw new InternalServerErrorException(RESPONSE_MESSAGES.COMMON.EMAIL_SEND_ERROR);
     }
   }
 }

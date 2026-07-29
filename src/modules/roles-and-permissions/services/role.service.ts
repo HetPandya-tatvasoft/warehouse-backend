@@ -11,6 +11,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Page } from '../entities/page.entity';
 import { PageAccess } from '../entities/page-access.entity';
 import { UpdateRolePageRightsDto } from '../dto/update-role-page-rights.dto';
+import { PlatformRoleCodes } from '@/common/enums/role.enum';
+import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class RoleService {
@@ -27,7 +29,7 @@ export class RoleService {
   async createRole(roleDto: RoleUpsertDto, user: ICurrentUserData): Promise<Role> {
     const existingRole = await this.roleRepository.findByName(roleDto.name, user.tenantId);
     if (existingRole) {
-      throw new ConflictException('Role with name already exists');
+      throw new ConflictException(RESPONSE_MESSAGES.ROLE.NAME_EXISTS);
     }
 
     const roleToCreate: DeepPartial<Role> = {
@@ -43,7 +45,7 @@ export class RoleService {
     user: ICurrentUserData,
     paginationRequest: RolePaginationQueryDto,
   ): Promise<IPaginatedResponse<Role>> {
-    const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC' } = paginationRequest;
+    const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC', search } = paginationRequest;
 
     const [roles, totalItems] = await this.roleRepository.findPaginated(
       user.tenantId,
@@ -51,6 +53,7 @@ export class RoleService {
       pageSize,
       sortBy,
       sortOrder,
+      search,
     );
 
     return {
@@ -65,7 +68,7 @@ export class RoleService {
   async getRoleById(id: string, user: ICurrentUserData): Promise<Role> {
     const role = await this.roleRepository.findById(id, user.tenantId);
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
     }
     return role;
   }
@@ -73,10 +76,12 @@ export class RoleService {
   async updateRole(id: string, roleDto: RoleUpsertDto, user: ICurrentUserData): Promise<Role> {
     const existingRole = await this.getRoleById(id, user);
 
+    // also one thign - prevent renaming of platform roles
+
     if (roleDto.name && roleDto.name !== existingRole.name) {
       const duplicateRole = await this.roleRepository.findByName(roleDto.name, user.tenantId);
       if (duplicateRole) {
-        throw new ConflictException('Role with name already exists');
+        throw new ConflictException(RESPONSE_MESSAGES.ROLE.NAME_EXISTS);
       }
     }
 
@@ -90,23 +95,31 @@ export class RoleService {
     );
 
     if (!updatedRole) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
     }
 
     return updatedRole;
   }
 
   async deleteRole(id: string, user: ICurrentUserData): Promise<void> {
+    const role = await this.getRoleById(id, user);
+    if (
+      role.name === (PlatformRoleCodes.TENANT_ADMIN as string) ||
+      // Cleanup this code after as I have removed this role globally
+      role.name === (PlatformRoleCodes.PLATFORM_SUPER_ADMIN as string)
+    ) {
+      throw new BadRequestException(RESPONSE_MESSAGES.ROLE.SYSTEM_ROLES_NO_DELETE);
+    }
     const deleted = await this.roleRepository.deleteRole(id, user.tenantId);
     if (!deleted) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
     }
   }
 
   async getPageRights(roleId: string, user: ICurrentUserData) {
     const role = await this.roleRepository.findById(roleId, user.tenantId);
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
     }
 
     const pages = await this.pageRepository.find({
@@ -165,7 +178,7 @@ export class RoleService {
   async updatePageRights(roleId: string, dto: UpdateRolePageRightsDto, user: ICurrentUserData): Promise<void> {
     const role = await this.roleRepository.findById(roleId, user.tenantId);
     if (!role) {
-      throw new NotFoundException('Role not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
     }
 
     const { pageAccessIds } = dto;
@@ -173,10 +186,14 @@ export class RoleService {
 
     if (uniquePageAccessIds.length > 0) {
       const count = await this.pageAccessRepository.count({
-        where: { id: In(uniquePageAccessIds) },
+        where: {
+          id: In(uniquePageAccessIds),
+          page: { isDeleted: false },
+          accessType: { isDeleted: false },
+        },
       });
       if (count !== uniquePageAccessIds.length) {
-        throw new BadRequestException('One or more pageAccessIds are invalid');
+        throw new BadRequestException(RESPONSE_MESSAGES.ROLE.PAGE_ACCESS_INVALID);
       }
     }
 

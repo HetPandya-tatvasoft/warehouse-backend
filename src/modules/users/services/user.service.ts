@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { UserRepository } from '../repositories/user.repository';
 import { RoleRepository } from '../../roles-and-permissions/repositories/role.repository';
@@ -8,8 +8,10 @@ import { UserPaginationQueryDto } from '../dto/user-pagination.dto';
 import { UserMapper, IUserResponseDto } from '../mappers/user.mapper';
 import { ICurrentUserData } from '@/modules/auth/types/jwt-payload.interface';
 import { IPaginatedResponse } from '@/common/types/api-response.interface';
+import { AUTH_CONSTANTS } from '@/common/constants/auth.constants';
 
 import { MailService } from '../../mail/services/mail.service';
+import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class UserService {
@@ -22,19 +24,18 @@ export class UserService {
   async createUser(createUserDto: CreateUserDto, currentUser: ICurrentUserData): Promise<IUserResponseDto> {
     const existingUser = await this.userRepository.findByEmail(createUserDto.email);
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException(RESPONSE_MESSAGES.USER.EMAIL_EXISTS);
     }
 
-    // Verify role IDs exist and are valid for this tenant (or global roles)
+    // Verify role IDs exist and are valid for this tenant
     for (const roleId of createUserDto.roleIds) {
       const role = await this.roleRepository.findById(roleId, currentUser.tenantId);
       if (!role) {
-        throw new NotFoundException(`Role with ID '${roleId}' not found in tenant`);
+        throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND_IN_TENANT(roleId));
       }
     }
 
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(createUserDto.password, saltRounds);
+    const passwordHash = await bcrypt.hash(createUserDto.password, AUTH_CONSTANTS.HASH_SALT_ROUNDS);
 
     const userToCreate = {
       email: createUserDto.email.toLowerCase(),
@@ -96,7 +97,7 @@ export class UserService {
   async getUserById(id: string, currentUser: ICurrentUserData): Promise<IUserResponseDto> {
     const user = await this.userRepository.findById(id, currentUser.tenantId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.USER.NOT_FOUND);
     }
     return UserMapper.toUserResponseDto(user);
   }
@@ -104,14 +105,18 @@ export class UserService {
   async updateUser(id: string, updateUserDto: UpdateUserDto, currentUser: ICurrentUserData): Promise<IUserResponseDto> {
     const existingUser = await this.userRepository.findById(id, currentUser.tenantId);
     if (!existingUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.USER.NOT_FOUND);
+    }
+
+    if (id === currentUser.userId && updateUserDto.isActive === true) {
+      throw new BadRequestException(RESPONSE_MESSAGES.USER.CANNOT_SELF_UPDATE);
     }
 
     if (updateUserDto.roleIds && updateUserDto.roleIds.length > 0) {
       for (const roleId of updateUserDto.roleIds) {
         const role = await this.roleRepository.findById(roleId, currentUser.tenantId);
         if (!role) {
-          throw new NotFoundException(`Role with ID '${roleId}' not found in tenant`);
+          throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND_IN_TENANT(roleId));
         }
       }
     }
@@ -129,7 +134,7 @@ export class UserService {
     );
 
     if (!updatedUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.USER.NOT_FOUND);
     }
 
     return UserMapper.toUserResponseDto(updatedUser);
@@ -138,7 +143,11 @@ export class UserService {
   async toggleUserStatus(id: string, isActive: boolean, currentUser: ICurrentUserData): Promise<IUserResponseDto> {
     const existingUser = await this.userRepository.findById(id, currentUser.tenantId);
     if (!existingUser) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(RESPONSE_MESSAGES.USER.NOT_FOUND);
+    }
+
+    if (id === currentUser.userId && !isActive) {
+      throw new BadRequestException(RESPONSE_MESSAGES.USER.CANNOT_SELF_DEACTIVATE);
     }
 
     await this.userRepository.updateStatus(id, isActive, currentUser.tenantId);
