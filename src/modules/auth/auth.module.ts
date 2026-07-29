@@ -4,6 +4,7 @@ import { AuthService } from './services/auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { MailModule } from '../mail/mail.module';
+import { RolesAndPermissionsModule } from '../roles-and-permissions/roles-and-permissions.module';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +17,7 @@ import { RefreshTokenRepository } from './repositories/refresh-token.repository'
     PassportModule,
     UsersModule,
     MailModule,
+    RolesAndPermissionsModule,
     TypeOrmModule.forFeature([RefreshToken]),
     JwtModule.registerAsync({
       inject: [ConfigService],

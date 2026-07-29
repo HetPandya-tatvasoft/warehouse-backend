@@ -1,5 +1,7 @@
-import { Controller, Post, Body, Get, UseGuards, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Res, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './services/auth.service';
+import { UserRepository } from '../../modules/users/repositories/user.repository';
+import { PermissionService } from '../../modules/roles-and-permissions/services/permission.service';
 
 import { LoginDto } from './dto/login.dto';
 import { JWTAuthGuard } from './guards/jwt-auth.guard';
@@ -13,7 +15,11 @@ import { ACCESS_COOKIE_OPTIONS, REFRESH_COOKIE_OPTIONS } from '@/config/cookie.c
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly userRepository: UserRepository,
+    private readonly permissionService: PermissionService,
+  ) {}
 
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response) {
@@ -48,8 +54,25 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JWTAuthGuard)
-  getProfile(@CurrentUser() user: ICurrentUserData) {
-    return ApiResponseUtil.success(user, 'User fetched successfully');
+  async getProfile(@CurrentUser() user: ICurrentUserData) {
+    const dbUser = await this.userRepository.findById(user.userId, user.tenantId);
+    if (!dbUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const permissions = await this.permissionService.getEffectivePermissions(user);
+
+    return ApiResponseUtil.success(
+      {
+        id: dbUser.id,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        email: dbUser.email,
+        tenantId: dbUser.tenantId ?? null,
+        permissions,
+      },
+      'User fetched successfully',
+    );
   }
 
   @Post('logout')
