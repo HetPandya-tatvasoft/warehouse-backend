@@ -15,7 +15,7 @@ import { User } from '@/modules/users/entities/user.entity';
 import { DataSource, EntityManager } from 'typeorm';
 import ms, { StringValue } from 'ms';
 import { PermissionService } from '@/modules/roles-and-permissions/services/permission.service';
-import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
+import { MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class AuthService {
@@ -32,17 +32,17 @@ export class AuthService {
     const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.DEACTIVATED);
+      throw new UnauthorizedException(MESSAGES.AUTH.DEACTIVATED);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_CREDENTIALS);
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_CREDENTIALS);
     }
 
     return user;
@@ -123,22 +123,22 @@ export class AuthService {
         secret: this.configService.getOrThrow('JWT_REFRESH_SECRET'),
       });
     } catch {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
     }
   }
 
   private async validateStoredRefreshToken(token: string, refreshTokenRecord: RefreshToken | null): Promise<void> {
     if (!refreshTokenRecord) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
     } else if (refreshTokenRecord.revokedAt) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.REFRESH_TOKEN_REVOKED);
+      throw new UnauthorizedException(MESSAGES.AUTH.REFRESH_TOKEN_REVOKED);
     } else if (refreshTokenRecord.expiresAt < new Date()) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.REFRESH_TOKEN_EXPIRED);
+      throw new UnauthorizedException(MESSAGES.AUTH.REFRESH_TOKEN_EXPIRED);
     }
 
     const isTokenValid = await bcrypt.compare(token, refreshTokenRecord.tokenHash);
     if (!isTokenValid) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_REFRESH_TOKEN);
     }
   }
 
@@ -153,11 +153,11 @@ export class AuthService {
     const user = await this.userRepository.findById(payload.sub);
 
     if (!user) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.USER.NOT_FOUND);
+      throw new UnauthorizedException(MESSAGES.USER.NOT_FOUND);
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.AUTH.DEACTIVATED);
+      throw new UnauthorizedException(MESSAGES.AUTH.DEACTIVATED);
     }
 
     const newRefreshToken = await this.rotateRefreshToken(user.id, refreshTokenRecord!.id);
@@ -184,7 +184,7 @@ export class AuthService {
   async getProfile(user: ICurrentUserData) {
     const dbUser = await this.userRepository.findById(user.userId, user.tenantId);
     if (!dbUser) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.USER.NOT_FOUND);
+      throw new UnauthorizedException(MESSAGES.USER.NOT_FOUND);
     }
 
     const permissions = await this.permissionService.getEffectivePermissions(user);

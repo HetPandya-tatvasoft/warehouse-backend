@@ -21,6 +21,8 @@ import { ICurrentUserData } from '@/modules/auth/types/jwt-payload.interface';
 import { IPaginatedResponse } from '@/common/types/api-response.interface';
 import { TenantMapper, ITenantResponseDto } from '../mappers/tenant.mapper';
 import { AUTH_CONSTANTS } from '@/common/constants/auth.constants';
+import { EMAIL_TEMPLATES } from '../../mail/templates/email-templates';
+import { MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class TenantService {
@@ -40,17 +42,17 @@ export class TenantService {
 
   async onboard(dto: TenantOnboardingDto, user: ICurrentUserData) {
     if (user.tenantId !== null || !user.roles.includes(PlatformRoleCodes.PLATFORM_SUPER_ADMIN)) {
-      throw new ForbiddenException('Access denied. Only Platform Super Admin can access this resource.');
+      throw new ForbiddenException(MESSAGES.TENANT.ACCESS_DENIED);
     }
 
     const existingTenant = await this.tenantRepository.findBySlug(dto.slug, { includeDeleted: true });
     if (existingTenant) {
-      throw new ConflictException('Tenant with this slug already exists');
+      throw new ConflictException(MESSAGES.TENANT.SLUG_EXISTS);
     }
 
     const existingUser = await this.userRepository.findByEmail(dto.primaryAdministrator.email);
     if (existingUser) {
-      throw new ConflictException('User with this email already exists');
+      throw new ConflictException(MESSAGES.TENANT.EMAIL_EXISTS);
     }
 
     // Fetch active PageAccess records to assign default permissions
@@ -125,23 +127,16 @@ export class TenantService {
     const loginUrl = `${appUrl}/login`;
 
     try {
-      // can move to email const
       await this.mailService.send({
         to: dto.primaryAdministrator.email,
-        subject: 'Welcome to Warehouse Inventory Management - Your Account Credentials',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-            <h2 style="color: #2c3e50;">Welcome to Warehouse Inventory Management</h2>
-            <p>Hello <strong>${dto.primaryAdministrator.firstName} ${dto.primaryAdministrator.lastName}</strong>,</p>
-            <p>Your tenant <strong>${dto.companyName}</strong> has been successfully onboarded. Here are your account credentials:</p>
-            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #007bff;">
-              <p style="margin: 5px 0;"><strong>Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
-              <p style="margin: 5px 0;"><strong>Login Email:</strong> ${dto.primaryAdministrator.email}</p>
-              <p style="margin: 5px 0;"><strong>Temporary Password:</strong> ${tempPassword}</p>
-            </div>
-            <p>Please log in using the temporary password above. You will be prompted to change your password upon your first login.</p>
-          </div>
-        `,
+        ...EMAIL_TEMPLATES.tenantOnboarding(
+          dto.primaryAdministrator.firstName,
+          dto.primaryAdministrator.lastName,
+          dto.companyName,
+          loginUrl,
+          dto.primaryAdministrator.email,
+          tempPassword,
+        ),
       });
     } catch (error) {
       this.logger.error(
@@ -163,7 +158,7 @@ export class TenantService {
     user: ICurrentUserData,
   ): Promise<IPaginatedResponse<ITenantResponseDto>> {
     if (user.tenantId !== null || !user.roles.includes(PlatformRoleCodes.PLATFORM_SUPER_ADMIN)) {
-      throw new ForbiddenException('Access denied. Only Platform Super Admin can access this resource.');
+      throw new ForbiddenException(MESSAGES.TENANT.ACCESS_DENIED);
     }
 
     const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC', search, status } = query;

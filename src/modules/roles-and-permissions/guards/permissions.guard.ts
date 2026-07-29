@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { PermissionService } from '../services/permission.service';
 import { PERMISSIONS_KEY, PermissionMetadata } from '../decorators/permissions.decorator';
 import type { ICurrentUserData } from '@/modules/auth/types/jwt-payload.interface';
-import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
+import { MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -30,7 +30,7 @@ export class PermissionsGuard implements CanActivate {
     const user = request.user;
 
     if (!user || !user.userId) {
-      throw new UnauthorizedException(RESPONSE_MESSAGES.USER.UNAUTHORIZED);
+      throw new UnauthorizedException(MESSAGES.USER.UNAUTHORIZED);
     }
 
     // checks authorization from permission service
@@ -41,7 +41,7 @@ export class PermissionsGuard implements CanActivate {
     );
 
     if (!hasAccess) {
-      throw new ForbiddenException(RESPONSE_MESSAGES.COMMON.FORBIDDEN);
+      throw new ForbiddenException(MESSAGES.COMMON.FORBIDDEN);
     }
 
     return true;

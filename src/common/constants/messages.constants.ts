@@ -1,4 +1,4 @@
-export const RESPONSE_MESSAGES = {
+export const MESSAGES = {
   AUTH: {
     LOGIN_SUCCESS: 'Login Successful',
     LOGOUT_SUCCESS: 'Logout Successful',
@@ -38,6 +38,9 @@ export const RESPONSE_MESSAGES = {
   TENANT: {
     ONBOARD_SUCCESS: 'Tenant onboarded successfully.',
     FETCH_ALL_SUCCESS: 'Tenants fetched successfully.',
+    SLUG_EXISTS: 'Tenant with this slug already exists',
+    EMAIL_EXISTS: 'User with this email already exists',
+    ACCESS_DENIED: 'Access denied. Only Platform Super Admin can access this resource.',
   },
   COMMON: {
     FORBIDDEN: 'You do not have permission to access this resource',

@@ -12,7 +12,7 @@ import { Page } from '../entities/page.entity';
 import { PageAccess } from '../entities/page-access.entity';
 import { UpdateRolePageRightsDto } from '../dto/update-role-page-rights.dto';
 import { PlatformRoleCodes } from '@/common/enums/role.enum';
-import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
+import { MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class RoleService {
@@ -29,7 +29,7 @@ export class RoleService {
   async createRole(roleDto: RoleUpsertDto, user: ICurrentUserData): Promise<Role> {
     const existingRole = await this.roleRepository.findByName(roleDto.name, user.tenantId);
     if (existingRole) {
-      throw new ConflictException(RESPONSE_MESSAGES.ROLE.NAME_EXISTS);
+      throw new ConflictException(MESSAGES.ROLE.NAME_EXISTS);
     }
 
     const roleToCreate: DeepPartial<Role> = {
@@ -68,7 +68,7 @@ export class RoleService {
   async getRoleById(id: string, user: ICurrentUserData): Promise<Role> {
     const role = await this.roleRepository.findById(id, user.tenantId);
     if (!role) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
+      throw new NotFoundException(MESSAGES.ROLE.NOT_FOUND);
     }
     return role;
   }
@@ -81,7 +81,7 @@ export class RoleService {
     if (roleDto.name && roleDto.name !== existingRole.name) {
       const duplicateRole = await this.roleRepository.findByName(roleDto.name, user.tenantId);
       if (duplicateRole) {
-        throw new ConflictException(RESPONSE_MESSAGES.ROLE.NAME_EXISTS);
+        throw new ConflictException(MESSAGES.ROLE.NAME_EXISTS);
       }
     }
 
@@ -95,7 +95,7 @@ export class RoleService {
     );
 
     if (!updatedRole) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
+      throw new NotFoundException(MESSAGES.ROLE.NOT_FOUND);
     }
 
     return updatedRole;
@@ -108,18 +108,18 @@ export class RoleService {
       // Cleanup this code after as I have removed this role globally
       role.name === (PlatformRoleCodes.PLATFORM_SUPER_ADMIN as string)
     ) {
-      throw new BadRequestException(RESPONSE_MESSAGES.ROLE.SYSTEM_ROLES_NO_DELETE);
+      throw new BadRequestException(MESSAGES.ROLE.SYSTEM_ROLES_NO_DELETE);
     }
     const deleted = await this.roleRepository.deleteRole(id, user.tenantId);
     if (!deleted) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
+      throw new NotFoundException(MESSAGES.ROLE.NOT_FOUND);
     }
   }
 
   async getPageRights(roleId: string, user: ICurrentUserData) {
     const role = await this.roleRepository.findById(roleId, user.tenantId);
     if (!role) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
+      throw new NotFoundException(MESSAGES.ROLE.NOT_FOUND);
     }
 
     const pages = await this.pageRepository.find({
@@ -178,7 +178,7 @@ export class RoleService {
   async updatePageRights(roleId: string, dto: UpdateRolePageRightsDto, user: ICurrentUserData): Promise<void> {
     const role = await this.roleRepository.findById(roleId, user.tenantId);
     if (!role) {
-      throw new NotFoundException(RESPONSE_MESSAGES.ROLE.NOT_FOUND);
+      throw new NotFoundException(MESSAGES.ROLE.NOT_FOUND);
     }
 
     const { pageAccessIds } = dto;
@@ -193,7 +193,7 @@ export class RoleService {
         },
       });
       if (count !== uniquePageAccessIds.length) {
-        throw new BadRequestException(RESPONSE_MESSAGES.ROLE.PAGE_ACCESS_INVALID);
+        throw new BadRequestException(MESSAGES.ROLE.PAGE_ACCESS_INVALID);
       }
     }
 

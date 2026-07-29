@@ -10,7 +10,7 @@ import { RefreshToken } from '../decorators/refresh-token.decorator';
 import { ApiResponseUtil } from '@/common/utils/api-response.util';
 import { COOKIE_NAMES } from '@/common/constants/cookie.constants';
 import { ACCESS_COOKIE_OPTIONS, REFRESH_COOKIE_OPTIONS } from '@/config/cookie.config';
-import { RESPONSE_MESSAGES } from '@/common/constants/messages.constants';
+import { MESSAGES } from '@/common/constants/messages.constants';
 
 @Controller('auth')
 export class AuthController {
@@ -24,7 +24,7 @@ export class AuthController {
 
     response.cookie(COOKIE_NAMES.REFRESH_TOKEN, refreshToken, REFRESH_COOKIE_OPTIONS);
 
-    return ApiResponseUtil.success(user, RESPONSE_MESSAGES.AUTH.LOGIN_SUCCESS);
+    return ApiResponseUtil.success(user, MESSAGES.AUTH.LOGIN_SUCCESS);
   }
 
   @Post('refresh-token')
@@ -39,7 +39,7 @@ export class AuthController {
       response.cookie(COOKIE_NAMES.ACCESS_TOKEN, generatedAccessToken, ACCESS_COOKIE_OPTIONS);
       response.cookie(COOKIE_NAMES.REFRESH_TOKEN, generatedRefreshToken, REFRESH_COOKIE_OPTIONS);
 
-      return ApiResponseUtil.success(user, RESPONSE_MESSAGES.AUTH.TOKEN_REFRESH_SUCCESS);
+      return ApiResponseUtil.success(user, MESSAGES.AUTH.TOKEN_REFRESH_SUCCESS);
     } catch (error) {
       response.clearCookie(COOKIE_NAMES.ACCESS_TOKEN, ACCESS_COOKIE_OPTIONS);
       response.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, REFRESH_COOKIE_OPTIONS);
@@ -52,7 +52,7 @@ export class AuthController {
   async getProfile(@CurrentUser() user: ICurrentUserData) {
     const profile = await this.authService.getProfile(user);
 
-    return ApiResponseUtil.success(profile, RESPONSE_MESSAGES.USER.FETCH_SUCCESS);
+    return ApiResponseUtil.success(profile, MESSAGES.USER.FETCH_SUCCESS);
   }
 
   @Post('logout')
@@ -68,6 +68,6 @@ export class AuthController {
       response.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, REFRESH_COOKIE_OPTIONS);
     }
 
-    return ApiResponseUtil.success<null>(null, RESPONSE_MESSAGES.AUTH.LOGOUT_SUCCESS);
+    return ApiResponseUtil.success<null>(null, MESSAGES.AUTH.LOGOUT_SUCCESS);
   }
 }
