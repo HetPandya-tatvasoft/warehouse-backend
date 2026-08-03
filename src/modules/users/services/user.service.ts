@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { DataSource, In, EntityManager } from 'typeorm';
 import { UserRepository } from '../repositories/user.repository';
+import { UserRoleRepository } from '../repositories/user-role.repository';
 import { RoleRepository } from '../../roles-and-permissions/repositories/role.repository';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -14,13 +16,65 @@ import { MailService } from '../../mail/services/mail.service';
 import { MESSAGES } from '@/common/constants/messages.constants';
 import { EMAIL_TEMPLATES } from '../../mail/templates/email-templates';
 
+import { UserBranchRepository } from '../../branches/repositories/user-branch.repository';
+import { TenantBranchRepository } from '../../branches/repositories/tenant-branch.repository';
+import { BranchStatus } from '../../branches/enums/branch-status.enum';
+import { UserBranch } from '../../branches/entities/user-branch.entity';
+
 @Injectable()
 export class UserService {
   constructor(
     private readonly userRepository: UserRepository,
+    private readonly userRoleRepository: UserRoleRepository,
     private readonly roleRepository: RoleRepository,
     private readonly mailService: MailService,
+    private readonly dataSource: DataSource,
+    private readonly userBranchRepository: UserBranchRepository,
+    private readonly tenantBranchRepository: TenantBranchRepository,
   ) {}
+
+  private async validateAndPrepareUserBranches(
+    branchIds: string[],
+    primaryBranchId: string,
+    tenantId: string,
+    userId: string,
+    assignedByUserId: string,
+    manager?: EntityManager,
+  ): Promise<UserBranch[]> {
+    const uniqueBranchIds = Array.from(new Set(branchIds));
+
+    if (!uniqueBranchIds.includes(primaryBranchId)) {
+      throw new BadRequestException(MESSAGES.USER.PRIMARY_BRANCH_MUST_BE_ASSIGNED);
+    }
+
+    const branches = await this.tenantBranchRepository.find(
+      {
+        where: {
+          id: In(uniqueBranchIds),
+          tenantId,
+          isDeleted: false,
+          status: BranchStatus.ACTIVE,
+        },
+      },
+      manager,
+    );
+
+    if (branches.length !== uniqueBranchIds.length) {
+      throw new NotFoundException(MESSAGES.USER.BRANCHES_NOT_FOUND_OR_INACTIVE);
+    }
+
+    return uniqueBranchIds.map((branchId) =>
+      this.userBranchRepository.create(
+        {
+          userId,
+          branchId,
+          isPrimary: branchId === primaryBranchId,
+          assignedBy: assignedByUserId,
+        },
+        manager,
+      ),
+    );
+  }
 
   async createUser(createUserDto: CreateUserDto, currentUser: ICurrentUserData): Promise<IUserResponseDto> {
     const existingUser = await this.userRepository.findByEmail(createUserDto.email);
@@ -28,7 +82,6 @@ export class UserService {
       throw new ConflictException(MESSAGES.USER.EMAIL_EXISTS);
     }
 
-    // Verify role IDs exist and are valid for this tenant
     for (const roleId of createUserDto.roleIds) {
       const role = await this.roleRepository.findById(roleId, currentUser.tenantId);
       if (!role) {
@@ -47,7 +100,36 @@ export class UserService {
       isActive: createUserDto.isActive ?? true,
     };
 
-    const createdUser = await this.userRepository.createUserWithRoles(userToCreate, createUserDto.roleIds);
+    const createdUser = await this.dataSource.transaction(async (manager) => {
+      const userInstance = this.userRepository.create(userToCreate, manager);
+      const savedUser = await this.userRepository.save(userInstance, manager);
+
+      const userBranches = await this.validateAndPrepareUserBranches(
+        createUserDto.branchIds,
+        createUserDto.primaryBranchId,
+        currentUser.tenantId!,
+        savedUser.id,
+        currentUser.userId,
+        manager,
+      );
+
+      if (createUserDto.roleIds && createUserDto.roleIds.length > 0) {
+        const userRoles = createUserDto.roleIds.map((roleId) =>
+          this.userRoleRepository.create(
+            {
+              userId: savedUser.id,
+              roleId,
+            },
+            manager,
+          ),
+        );
+        await this.userRoleRepository.saveMany(userRoles, manager);
+      }
+
+      await this.userBranchRepository.saveMany(userBranches, manager);
+
+      return (await this.userRepository.findByIdWithBranches(savedUser.id, savedUser.tenantId, manager))!;
+    });
 
     await this.mailService.send({
       to: createdUser.email,
@@ -68,26 +150,24 @@ export class UserService {
   ): Promise<IPaginatedResponse<IUserResponseDto>> {
     const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC', search } = query;
 
-    const [users, totalItems] = await this.userRepository.findPaginated(
+    const { items: users, ...paginationData } = await this.userRepository.findPaginated(
       currentUser.tenantId,
       page,
       pageSize,
       sortBy,
       sortOrder,
       search,
+      true, // loadBranches
     );
 
     return {
       items: users.map((user) => UserMapper.toUserResponseDto(user)),
-      page,
-      pageSize,
-      totalItems,
-      totalPages: Math.ceil(totalItems / pageSize),
+      ...paginationData,
     };
   }
 
   async getUserById(id: string, currentUser: ICurrentUserData): Promise<IUserResponseDto> {
-    const user = await this.userRepository.findById(id, currentUser.tenantId);
+    const user = await this.userRepository.findByIdWithBranches(id, currentUser.tenantId);
     if (!user) {
       throw new NotFoundException(MESSAGES.USER.NOT_FOUND);
     }
@@ -113,17 +193,60 @@ export class UserService {
       }
     }
 
+    const hasBranchIds = !!updateUserDto.branchIds && updateUserDto.branchIds.length > 0;
+    const hasPrimary = !!updateUserDto.primaryBranchId;
+
+    if (
+      (updateUserDto.branchIds !== undefined || updateUserDto.primaryBranchId !== undefined) &&
+      hasBranchIds !== hasPrimary
+    ) {
+      throw new BadRequestException(MESSAGES.USER.BRANCH_ASSIGNMENT_REQUIRED);
+    }
+
     const userDataToUpdate: Partial<typeof existingUser> = {};
     if (updateUserDto.firstName !== undefined) userDataToUpdate.firstName = updateUserDto.firstName;
     if (updateUserDto.lastName !== undefined) userDataToUpdate.lastName = updateUserDto.lastName;
     if (updateUserDto.isActive !== undefined) userDataToUpdate.isActive = updateUserDto.isActive;
 
-    const updatedUser = await this.userRepository.updateUserWithRoles(
-      id,
-      userDataToUpdate,
-      updateUserDto.roleIds,
-      currentUser.tenantId,
-    );
+    const updatedUser = await this.dataSource.transaction(async (manager) => {
+      if (Object.keys(userDataToUpdate).length > 0) {
+        await this.userRepository.getRepository(manager).update(id, userDataToUpdate);
+      }
+
+      if (updateUserDto.roleIds !== undefined) {
+        await this.userRoleRepository.getRepository(manager).delete({ userId: id });
+
+        if (updateUserDto.roleIds.length > 0) {
+          const newUserRoles = updateUserDto.roleIds.map((roleId) =>
+            this.userRoleRepository.create(
+              {
+                userId: id,
+                roleId,
+              },
+              manager,
+            ),
+          );
+          await this.userRoleRepository.saveMany(newUserRoles, manager);
+        }
+      }
+
+      if (updateUserDto.branchIds && updateUserDto.primaryBranchId) {
+        const userBranches = await this.validateAndPrepareUserBranches(
+          updateUserDto.branchIds,
+          updateUserDto.primaryBranchId,
+          currentUser.tenantId!,
+          id,
+          currentUser.userId,
+          manager,
+        );
+
+        await this.userBranchRepository.getRepository(manager).delete({ userId: id });
+
+        await this.userBranchRepository.saveMany(userBranches, manager);
+      }
+
+      return await this.userRepository.findByIdWithBranches(id, currentUser.tenantId, manager);
+    });
 
     if (!updatedUser) {
       throw new NotFoundException(MESSAGES.USER.NOT_FOUND);
@@ -143,7 +266,7 @@ export class UserService {
     }
 
     await this.userRepository.updateStatus(id, isActive, currentUser.tenantId);
-    const updatedUser = await this.userRepository.findById(id, currentUser.tenantId);
+    const updatedUser = await this.userRepository.findByIdWithBranches(id, currentUser.tenantId);
     return UserMapper.toUserResponseDto(updatedUser!);
   }
 }

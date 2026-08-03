@@ -22,6 +22,16 @@ export class UpdateUserDto {
   roleIds?: string[];
 
   @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1, { message: 'At least one branch must be assigned' })
+  @IsUUID('4', { each: true, message: 'Branch IDs must be valid UUIDs' })
+  branchIds?: string[];
+
+  @IsOptional()
+  @IsUUID('4', { message: 'Primary branch ID must be a valid UUID' })
+  primaryBranchId?: string;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }

@@ -1,4 +1,4 @@
-export const ALLOWED_COUNTRIES = ['India', 'United States', 'Canada', 'United Kingdom', 'Australia'];
+export const ALLOWED_COUNTRIES = ['India', 'United States', 'Canada', 'United Kingdom', 'Australia', 'Japan'];
 
 export const ALLOWED_STATES = [
   // India
@@ -19,12 +19,23 @@ export const ALLOWED_STATES = [
   // Australia
   'New South Wales',
   'Victoria',
+  // Japan
+  'Kanagawa',
 ];
 
 export const ALLOWED_CITIES = [
   // India
   'Ahmedabad',
   'Gandhinagar',
+  'Surat',
+  'Vadodara',
+  'Rajkot',
+  'Bhavnagar',
+  'Jamnagar',
+  'Anand',
+  'Junagadh',
+  'Morbi',
+  'Valodara',
   'Mumbai',
   'Pune',
   'Bengaluru',
@@ -46,4 +57,6 @@ export const ALLOWED_CITIES = [
   // Australia
   'Sydney',
   'Melbourne',
+  // Japan
+  'Kawasaki-shi',
 ];

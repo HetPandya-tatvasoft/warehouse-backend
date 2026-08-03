@@ -99,13 +99,17 @@ export class AuthService {
     const refreshTokenHash = await this.hashRefreshToken(refreshToken);
     const refreshTokenExpiresAt = this.getRefreshTokenExpiryDate();
 
-    await this.refreshTokenRepository.createRefreshToken(
-      tokenId,
-      userId,
-      refreshTokenHash,
-      refreshTokenExpiresAt,
+    const refreshTokenInstance = this.refreshTokenRepository.create(
+      {
+        id: tokenId,
+        userId,
+        tokenHash: refreshTokenHash,
+        expiresAt: refreshTokenExpiresAt,
+      },
       manager,
     );
+
+    await this.refreshTokenRepository.save(refreshTokenInstance, manager);
 
     return refreshToken;
   }
@@ -181,13 +185,30 @@ export class AuthService {
     await this.refreshTokenRepository.revoke(refreshTokenRecord!.id);
   }
 
-  async getProfile(user: ICurrentUserData) {
-    const dbUser = await this.userRepository.findById(user.userId, user.tenantId);
+  async getProfile(user: ICurrentUserData, activeBranchIdFromCookie?: string | null) {
+    const dbUser = await this.userRepository.findByIdWithBranches(user.userId, user.tenantId);
     if (!dbUser) {
       throw new UnauthorizedException(MESSAGES.USER.NOT_FOUND);
     }
 
     const permissions = await this.permissionService.getEffectivePermissions(user);
+
+    const branches = (dbUser.userBranches || []).map((ub) => ({
+      id: ub.branch.id,
+      name: ub.branch.name,
+      isPrimary: ub.isPrimary,
+    }));
+
+    const primaryBranch = branches.find((b) => b.isPrimary) || branches[0] || null;
+
+    let activeBranch: { id: string; name: string; isPrimary: boolean } | null = null;
+    if (activeBranchIdFromCookie) {
+      activeBranch = branches.find((b) => b.id === activeBranchIdFromCookie) || null;
+    }
+
+    if (!activeBranch) {
+      activeBranch = primaryBranch;
+    }
 
     return {
       id: dbUser.id,
@@ -195,7 +216,44 @@ export class AuthService {
       lastName: dbUser.lastName,
       email: dbUser.email,
       tenantId: dbUser.tenantId ?? null,
+      roles: dbUser.userRoles ? dbUser.userRoles.map((ur) => ur.role?.name).filter(Boolean) : [],
       permissions,
+      branches,
+      activeBranch,
+    };
+  }
+
+  async switchBranch(user: ICurrentUserData, branchId: string) {
+    const dbUser = await this.userRepository.findByIdWithBranches(user.userId, user.tenantId);
+    if (!dbUser) {
+      throw new UnauthorizedException(MESSAGES.USER.NOT_FOUND);
+    }
+
+    const isAssigned = (dbUser.userBranches || []).some((ub) => ub.branchId === branchId);
+    if (!isAssigned) {
+      throw new UnauthorizedException('You do not have access to this branch.');
+    }
+
+    const permissions = await this.permissionService.getEffectivePermissions(user);
+
+    const branches = (dbUser.userBranches || []).map((ub) => ({
+      id: ub.branch.id,
+      name: ub.branch.name,
+      isPrimary: ub.isPrimary,
+    }));
+
+    const activeBranch = branches.find((b) => b.id === branchId) || null;
+
+    return {
+      id: dbUser.id,
+      firstName: dbUser.firstName,
+      lastName: dbUser.lastName,
+      email: dbUser.email,
+      tenantId: dbUser.tenantId ?? null,
+      roles: dbUser.userRoles ? dbUser.userRoles.map((ur) => ur.role?.name).filter(Boolean) : [],
+      permissions,
+      branches,
+      activeBranch,
     };
   }
 }

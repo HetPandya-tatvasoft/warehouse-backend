@@ -1,42 +1,44 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, EntityManager, FindOptionsWhere, ILike, Repository } from 'typeorm';
+import { EntityManager, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { TenantBranch } from '../entities/tenant-branch.entity';
 import { BranchStatus } from '../enums/branch-status.enum';
+import { BaseRepository } from '../../../common/repositories/base.repository';
+import { IPaginatedResponse } from '@/common/types/api-response.interface';
 
 @Injectable()
-export class TenantBranchRepository {
+export class TenantBranchRepository extends BaseRepository<TenantBranch> {
   constructor(
     @InjectRepository(TenantBranch)
-    private readonly repository: Repository<TenantBranch>,
-  ) {}
+    repository: Repository<TenantBranch>,
+  ) {
+    super(TenantBranch, repository);
+  }
 
   async findByIdAndTenant(id: string, tenantId: string, manager?: EntityManager): Promise<TenantBranch | null> {
-    const repo = manager ? manager.getRepository(TenantBranch) : this.repository;
-    return repo.findOne({
-      where: {
-        id,
-        tenantId,
-        isDeleted: false,
+    return this.findOne(
+      {
+        where: {
+          id,
+          tenantId,
+          isDeleted: false,
+        },
       },
-    });
+      manager,
+    );
   }
 
   async findByNameAndTenant(name: string, tenantId: string, manager?: EntityManager): Promise<TenantBranch | null> {
-    const repo = manager ? manager.getRepository(TenantBranch) : this.repository;
-    return repo.findOne({
-      where: {
-        name,
-        tenantId,
-        isDeleted: false,
+    return this.findOne(
+      {
+        where: {
+          name,
+          tenantId,
+          isDeleted: false,
+        },
       },
-    });
-  }
-
-  async createBranch(branchData: DeepPartial<TenantBranch>, manager?: EntityManager): Promise<TenantBranch> {
-    const repo = manager ? manager.getRepository(TenantBranch) : this.repository;
-    const branch = repo.create(branchData);
-    return repo.save(branch);
+      manager,
+    );
   }
 
   async findPaginated(
@@ -48,9 +50,7 @@ export class TenantBranchRepository {
     search?: string,
     status?: BranchStatus,
     manager?: EntityManager,
-  ): Promise<[TenantBranch[], number]> {
-    const repo = manager ? manager.getRepository(TenantBranch) : this.repository;
-
+  ): Promise<IPaginatedResponse<TenantBranch>> {
     const whereCondition: FindOptionsWhere<TenantBranch> = {
       tenantId,
       isDeleted: false,
@@ -60,33 +60,23 @@ export class TenantBranchRepository {
       whereCondition.status = status;
     }
 
-    if (search && search.trim() !== '') {
-      const searchTerm = `%${search.trim()}%`;
-      return repo.findAndCount({
-        where: {
+    const where = search?.trim()
+      ? {
           ...whereCondition,
-          name: ILike(searchTerm),
-        },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+          name: ILike(`%${search.trim()}%`),
+        }
+      : whereCondition;
+
+    return this.findAndCountPaginated(
+      page,
+      pageSize,
+      {
+        where,
         order: {
           [sortBy]: sortOrder,
         },
-      });
-    }
-
-    return repo.findAndCount({
-      where: whereCondition,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      order: {
-        [sortBy]: sortOrder,
       },
-    });
-  }
-
-  async save(branch: TenantBranch, manager?: EntityManager): Promise<TenantBranch> {
-    const repo = manager ? manager.getRepository(TenantBranch) : this.repository;
-    return repo.save(branch);
+      manager,
+    );
   }
 }

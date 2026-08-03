@@ -5,7 +5,7 @@ import { RolePaginationQueryDto } from '../dto/role-pagination.dto';
 import { IPaginatedResponse } from '@/common/types/api-response.interface';
 import { Role } from '../entities/role.entity';
 import { RoleUpsertDto } from '../dto/role-upsert.dto';
-import { DataSource, DeepPartial, In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { RolePageRightRepository } from '../repositories/role-page-right.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Page } from '../entities/page.entity';
@@ -32,13 +32,12 @@ export class RoleService {
       throw new ConflictException(MESSAGES.ROLE.NAME_EXISTS);
     }
 
-    const roleToCreate: DeepPartial<Role> = {
+    const roleInstance = this.roleRepository.create({
       name: roleDto.name,
       tenantId: user.tenantId,
       description: roleDto.description,
-    };
-
-    return this.roleRepository.createRole(roleToCreate);
+    });
+    return this.roleRepository.save(roleInstance);
   }
 
   async getRolesPaginated(
@@ -47,22 +46,7 @@ export class RoleService {
   ): Promise<IPaginatedResponse<Role>> {
     const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC', search } = paginationRequest;
 
-    const [roles, totalItems] = await this.roleRepository.findPaginated(
-      user.tenantId,
-      page,
-      pageSize,
-      sortBy,
-      sortOrder,
-      search,
-    );
-
-    return {
-      items: roles,
-      page,
-      pageSize,
-      totalItems,
-      totalPages: Math.ceil(totalItems / pageSize),
-    };
+    return this.roleRepository.findPaginated(user.tenantId, page, pageSize, sortBy, sortOrder, search);
   }
 
   async getRoleById(id: string, user: ICurrentUserData): Promise<Role> {
@@ -133,7 +117,11 @@ export class RoleService {
       },
       relations: { page: true, accessType: true },
     });
-    const currentRights = await this.rolePageRightRepository.findByRoleId(roleId);
+
+    const currentRights = await this.rolePageRightRepository.find({
+      where: { roleId },
+    });
+
     const grantedAccessIds = new Set(currentRights.map((r) => r.pageAccessId));
 
     const pageAccessesMap = new Map<string, PageAccess[]>();
@@ -198,7 +186,7 @@ export class RoleService {
     }
 
     await this.dataSource.transaction(async (manager) => {
-      await this.rolePageRightRepository.deleteByRoleId(roleId, manager);
+      await this.rolePageRightRepository.delete({ roleId }, manager);
       await this.rolePageRightRepository.bulkInsert(roleId, uniquePageAccessIds, manager);
     });
   }

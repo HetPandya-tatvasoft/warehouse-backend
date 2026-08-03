@@ -2,18 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { Role } from '../entities/role.entity';
 import { DeepPartial, EntityManager, FindOptionsWhere, IsNull, Repository, ILike } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { BaseRepository } from '../../../common/repositories/base.repository';
+import { IPaginatedResponse } from '@/common/types/api-response.interface';
 
 @Injectable()
-export class RoleRepository {
+export class RoleRepository extends BaseRepository<Role> {
   constructor(
     @InjectRepository(Role)
-    private readonly repository: Repository<Role>,
-  ) {}
-
-  async createRole(role: DeepPartial<Role>, manager?: EntityManager): Promise<Role> {
-    const repo = manager ? manager.getRepository(Role) : this.repository;
-    const createdRole = repo.create(role);
-    return repo.save(createdRole);
+    repository: Repository<Role>,
+  ) {
+    super(Role, repository);
   }
 
   async updateRole(
@@ -22,14 +20,14 @@ export class RoleRepository {
     tenantId: string | null,
     manager?: EntityManager,
   ): Promise<Role | null> {
-    const repo = manager ? manager.getRepository(Role) : this.repository;
-    const result = await repo.update(
+    const result = await this.update(
       {
         id: roleId,
         tenantId: tenantId ?? IsNull(),
         isDeleted: false,
       },
       roleData,
+      manager,
     );
     if ((result.affected ?? 0) === 0) {
       return null;
@@ -38,8 +36,7 @@ export class RoleRepository {
   }
 
   async deleteRole(roleId: string, tenantId: string | null, manager?: EntityManager): Promise<boolean> {
-    const repo = manager ? manager.getRepository(Role) : this.repository;
-    const result = await repo.update(
+    const result = await this.update(
       {
         id: roleId,
         tenantId: tenantId ?? IsNull(),
@@ -48,40 +45,47 @@ export class RoleRepository {
       {
         isDeleted: true,
       },
+      manager,
     );
     return (result.affected ?? 0) > 0;
   }
 
   async findById(roleId: string, tenantId: string | null, manager?: EntityManager): Promise<Role | null> {
-    const repo = manager ? manager.getRepository(Role) : this.repository;
-    return repo.findOne({
-      where: {
-        tenantId: tenantId ?? IsNull(),
-        id: roleId,
-        isDeleted: false,
+    return this.findOne(
+      {
+        where: {
+          tenantId: tenantId ?? IsNull(),
+          id: roleId,
+          isDeleted: false,
+        },
       },
-    });
+      manager,
+    );
   }
 
   async findByName(roleName: string, tenantId: string | null, manager?: EntityManager): Promise<Role | null> {
-    const repo = manager ? manager.getRepository(Role) : this.repository;
-    return repo.findOne({
-      where: {
-        tenantId: tenantId ?? IsNull(),
-        name: roleName,
-        isDeleted: false,
+    return this.findOne(
+      {
+        where: {
+          tenantId: tenantId ?? IsNull(),
+          name: roleName,
+          isDeleted: false,
+        },
       },
-    });
+      manager,
+    );
   }
 
   async findAll(tenantId: string | null, manager?: EntityManager): Promise<Role[]> {
-    const repo = manager ? manager.getRepository(Role) : this.repository;
-    return repo.find({
-      where: {
-        tenantId: tenantId ?? IsNull(),
-        isDeleted: false,
+    return this.find(
+      {
+        where: {
+          tenantId: tenantId ?? IsNull(),
+          isDeleted: false,
+        },
       },
-    });
+      manager,
+    );
   }
 
   async findPaginated(
@@ -92,8 +96,7 @@ export class RoleRepository {
     sortOrder: 'ASC' | 'DESC',
     search?: string,
     manager?: EntityManager,
-  ): Promise<[Role[], number]> {
-    const repo = manager ? manager.getRepository(Role) : this.repository;
+  ): Promise<IPaginatedResponse<Role>> {
     const whereClause: FindOptionsWhere<Role> = {
       isDeleted: false,
       tenantId: tenantId ?? IsNull(),
@@ -103,13 +106,16 @@ export class RoleRepository {
       whereClause.name = ILike(`%${search.trim()}%`);
     }
 
-    return repo.findAndCount({
-      where: whereClause,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      order: {
-        [sortBy]: sortOrder,
+    return this.findAndCountPaginated(
+      page,
+      pageSize,
+      {
+        where: whereClause,
+        order: {
+          [sortBy]: sortOrder,
+        },
       },
-    });
+      manager,
+    );
   }
 }

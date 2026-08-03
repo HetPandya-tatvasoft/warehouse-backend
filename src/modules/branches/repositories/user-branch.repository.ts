@@ -2,31 +2,26 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { UserBranch } from '../entities/user-branch.entity';
+import { BaseRepository } from '../../../common/repositories/base.repository';
 
 @Injectable()
-export class UserBranchRepository {
+export class UserBranchRepository extends BaseRepository<UserBranch> {
   constructor(
     @InjectRepository(UserBranch)
-    private readonly repository: Repository<UserBranch>,
-  ) {}
+    repository: Repository<UserBranch>,
+  ) {
+    super(UserBranch, repository);
+  }
 
   async findById(id: string, manager?: EntityManager): Promise<UserBranch | null> {
-    const repo = manager ? manager.getRepository(UserBranch) : this.repository;
-    return repo.findOne({ where: { id } });
+    return this.findOne({ where: { id } }, manager);
   }
 
   async findByUserId(userId: string, manager?: EntityManager): Promise<UserBranch[]> {
-    const repo = manager ? manager.getRepository(UserBranch) : this.repository;
-    return repo.find({ where: { userId }, relations: { branch: true } });
+    return this.find({ where: { userId }, relations: { branch: true } }, manager);
   }
 
   async findByBranchId(branchId: string, manager?: EntityManager): Promise<UserBranch[]> {
-    const repo = manager ? manager.getRepository(UserBranch) : this.repository;
-    return repo.find({ where: { branchId }, relations: { user: true } });
-  }
-
-  async save(userBranch: UserBranch, manager?: EntityManager): Promise<UserBranch> {
-    const repo = manager ? manager.getRepository(UserBranch) : this.repository;
-    return repo.save(userBranch);
+    return this.find({ where: { branchId }, relations: { user: true } }, manager);
   }
 }

@@ -7,26 +7,34 @@ import { TenantBranch } from '../entities/tenant-branch.entity';
 import { ICurrentUserData } from '@/modules/auth/types/jwt-payload.interface';
 import { IPaginatedResponse } from '@/common/types/api-response.interface';
 import { MESSAGES } from '@/common/constants/messages.constants';
+import { UserBranchRepository } from '../repositories/user-branch.repository';
+import { BranchStatus } from '../enums/branch-status.enum';
 
 @Injectable()
 export class BranchesService {
-  constructor(private readonly tenantBranchRepository: TenantBranchRepository) {}
+  constructor(
+    private readonly tenantBranchRepository: TenantBranchRepository,
+    private readonly userBranchRepository: UserBranchRepository,
+  ) {}
 
   async createBranch(createBranchDto: CreateBranchDto, currentUser: ICurrentUserData): Promise<TenantBranch> {
     if (!currentUser.tenantId) {
-      throw new BadRequestException('Tenant ID is required to manage branches.');
+      throw new BadRequestException(MESSAGES.BRANCH.TENANT_REQUIRED);
     }
 
-    const existingBranch = await this.tenantBranchRepository.findByNameAndTenant(
-      createBranchDto.name,
-      currentUser.tenantId,
-    );
+    const existingBranch = await this.tenantBranchRepository.findOne({
+      where: {
+        name: createBranchDto.name,
+        tenantId: currentUser.tenantId,
+        isDeleted: false,
+      },
+    });
 
     if (existingBranch) {
       throw new ConflictException(MESSAGES.BRANCH.NAME_EXISTS);
     }
 
-    return this.tenantBranchRepository.createBranch({
+    const branch = this.tenantBranchRepository.create({
       name: createBranchDto.name,
       status: createBranchDto.status,
       tenantId: currentUser.tenantId,
@@ -37,14 +45,21 @@ export class BranchesService {
       country: createBranchDto.country,
       postalCode: createBranchDto.postalCode,
     });
+    return this.tenantBranchRepository.save(branch);
   }
 
   async getBranchById(id: string, currentUser: ICurrentUserData): Promise<TenantBranch> {
     if (!currentUser.tenantId) {
-      throw new BadRequestException('Tenant ID is required to manage branches.');
+      throw new BadRequestException(MESSAGES.BRANCH.TENANT_REQUIRED);
     }
 
-    const branch = await this.tenantBranchRepository.findByIdAndTenant(id, currentUser.tenantId);
+    const branch = await this.tenantBranchRepository.findOne({
+      where: {
+        id: id,
+        tenantId: currentUser.tenantId,
+        isDeleted: false,
+      },
+    });
     if (!branch) {
       throw new NotFoundException(MESSAGES.BRANCH.NOT_FOUND);
     }
@@ -57,12 +72,12 @@ export class BranchesService {
     query: BranchPaginationQueryDto,
   ): Promise<IPaginatedResponse<TenantBranch>> {
     if (!currentUser.tenantId) {
-      throw new BadRequestException('Tenant ID is required to manage branches.');
+      throw new BadRequestException(MESSAGES.BRANCH.TENANT_REQUIRED);
     }
 
     const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC', search, status } = query;
 
-    const [branches, totalItems] = await this.tenantBranchRepository.findPaginated(
+    return this.tenantBranchRepository.findPaginated(
       currentUser.tenantId,
       page,
       pageSize,
@@ -71,14 +86,6 @@ export class BranchesService {
       search,
       status,
     );
-
-    return {
-      items: branches,
-      page,
-      pageSize,
-      totalItems,
-      totalPages: Math.ceil(totalItems / pageSize),
-    };
   }
 
   async updateBranch(
@@ -87,7 +94,7 @@ export class BranchesService {
     currentUser: ICurrentUserData,
   ): Promise<TenantBranch> {
     if (!currentUser.tenantId) {
-      throw new BadRequestException('Tenant ID is required to manage branches.');
+      throw new BadRequestException(MESSAGES.BRANCH.TENANT_REQUIRED);
     }
 
     const branch = await this.tenantBranchRepository.findByIdAndTenant(id, currentUser.tenantId);
@@ -120,12 +127,42 @@ export class BranchesService {
 
   async deleteBranch(id: string, currentUser: ICurrentUserData): Promise<void> {
     if (!currentUser.tenantId) {
-      throw new BadRequestException('Tenant ID is required to manage branches.');
+      throw new BadRequestException(MESSAGES.BRANCH.TENANT_REQUIRED);
     }
 
     const branch = await this.tenantBranchRepository.findByIdAndTenant(id, currentUser.tenantId);
     if (!branch) {
       throw new NotFoundException(MESSAGES.BRANCH.NOT_FOUND);
+    }
+
+    const userAssignments = await this.userBranchRepository.find({
+      where: {
+        branchId: id,
+        user: {
+          isActive: true,
+        },
+      },
+      relations: {
+        user: true,
+      },
+    });
+
+    if (userAssignments.length > 0) {
+      throw new BadRequestException(MESSAGES.BRANCH.CANNOT_DELETE_ASSIGNED);
+    }
+
+    if (branch.status === BranchStatus.ACTIVE) {
+      const activeBranchesCount = await this.tenantBranchRepository.getRepository().count({
+        where: {
+          tenantId: currentUser.tenantId,
+          isDeleted: false,
+          status: BranchStatus.ACTIVE,
+        },
+      });
+
+      if (activeBranchesCount <= 1) {
+        throw new BadRequestException(MESSAGES.BRANCH.CANNOT_DELETE_LAST_ACTIVE);
+      }
     }
 
     branch.isDeleted = true;

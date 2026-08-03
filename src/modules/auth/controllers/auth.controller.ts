@@ -1,11 +1,12 @@
-import { Controller, Post, Body, Get, UseGuards, Res } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Res, Req } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 
 import { LoginDto } from '../dto/login.dto';
+import { SwitchBranchDto } from '../dto/switch-branch.dto';
 import { JWTAuthGuard } from '../guards/jwt-auth.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import type { ICurrentUserData } from '../types/jwt-payload.interface';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { RefreshToken } from '../decorators/refresh-token.decorator';
 import { ApiResponseUtil } from '@/common/utils/api-response.util';
 import { COOKIE_NAMES } from '@/common/constants/cookie.constants';
@@ -49,10 +50,43 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JWTAuthGuard)
-  async getProfile(@CurrentUser() user: ICurrentUserData) {
-    const profile = await this.authService.getProfile(user);
+  async getProfile(
+    @CurrentUser() user: ICurrentUserData,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const activeBranchIdFromCookie = (request.cookies?.[COOKIE_NAMES.ACTIVE_BRANCH_ID] as string | undefined) ?? null;
+    const profile = await this.authService.getProfile(user, activeBranchIdFromCookie);
+
+    if (profile.activeBranch?.id && profile.activeBranch.id !== activeBranchIdFromCookie) {
+      response.cookie(COOKIE_NAMES.ACTIVE_BRANCH_ID, profile.activeBranch.id, {
+        httpOnly: false,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+    }
 
     return ApiResponseUtil.success(profile, MESSAGES.USER.FETCH_SUCCESS);
+  }
+
+  @Post('switch-branch')
+  @UseGuards(JWTAuthGuard)
+  async switchBranch(
+    @CurrentUser() user: ICurrentUserData,
+    @Body() switchBranchDto: SwitchBranchDto,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const profile = await this.authService.switchBranch(user, switchBranchDto.branchId);
+
+    response.cookie(COOKIE_NAMES.ACTIVE_BRANCH_ID, switchBranchDto.branchId, {
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return ApiResponseUtil.success(profile, 'Branch switched successfully.');
   }
 
   @Post('logout')

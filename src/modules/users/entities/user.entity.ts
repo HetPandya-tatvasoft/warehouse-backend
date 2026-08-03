@@ -4,6 +4,8 @@ import { AuditableEntity } from '../../../common/entities/auditable.entity';
 import { Tenant } from '../../tenants/entities/tenant.entity';
 import { UserRole } from './user-role.entity';
 
+import { UserBranch } from '../../branches/entities/user-branch.entity';
+
 @Index('uq_users_email', ['email'], {
   unique: true,
 })
@@ -61,4 +63,7 @@ export class User extends AuditableEntity {
 
   @OneToMany(() => UserRole, (userRole) => userRole.user)
   userRoles!: UserRole[];
+
+  @OneToMany(() => UserBranch, (userBranch) => userBranch.user)
+  userBranches!: UserBranch[];
 }

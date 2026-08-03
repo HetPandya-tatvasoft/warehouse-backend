@@ -1,36 +1,34 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeepPartial, EntityManager, Repository, FindOptionsWhere, ILike, In } from 'typeorm';
+import { EntityManager, Repository, FindOptionsWhere, ILike } from 'typeorm';
 import { Tenant } from '../entities/tenant.entity';
 import { TenantStatus } from '../enums/tenant-status.enum';
-import { User } from '../../users/entities/user.entity';
-import { ITenantWithAdmin } from '../mappers/tenant.mapper';
+import { BaseRepository } from '../../../common/repositories/base.repository';
+import { IPaginatedResponse } from '@/common/types/api-response.interface';
 
 @Injectable()
-export class TenantRepository {
+export class TenantRepository extends BaseRepository<Tenant> {
   constructor(
     @InjectRepository(Tenant)
-    private readonly repository: Repository<Tenant>,
-  ) {}
+    repository: Repository<Tenant>,
+  ) {
+    super(Tenant, repository);
+  }
 
   async findBySlug(
     slug: string,
     options?: { includeDeleted?: boolean },
     manager?: EntityManager,
   ): Promise<Tenant | null> {
-    const repo = manager ? manager.getRepository(Tenant) : this.repository;
-    return repo.findOne({
-      where: {
-        slug,
-        ...(options?.includeDeleted ? {} : { isDeleted: false }),
+    return this.findOne(
+      {
+        where: {
+          slug,
+          ...(options?.includeDeleted ? {} : { isDeleted: false }),
+        },
       },
-    });
-  }
-
-  async createTenant(tenantData: DeepPartial<Tenant>, manager?: EntityManager): Promise<Tenant> {
-    const repo = manager ? manager.getRepository(Tenant) : this.repository;
-    const tenant = repo.create(tenantData);
-    return repo.save(tenant);
+      manager,
+    );
   }
 
   async findPaginated(
@@ -41,8 +39,7 @@ export class TenantRepository {
     search?: string,
     status?: TenantStatus,
     manager?: EntityManager,
-  ): Promise<[ITenantWithAdmin[], number]> {
-    const repo = manager ? manager.getRepository(Tenant) : this.repository;
+  ): Promise<IPaginatedResponse<Tenant>> {
     const whereCondition: FindOptionsWhere<Tenant> = {
       isDeleted: false,
     };
@@ -51,57 +48,25 @@ export class TenantRepository {
       whereCondition.status = status;
     }
 
-    let tenants: ITenantWithAdmin[];
-    let total: number;
+    const normalizedSearch = search?.trim();
 
-    if (search && search.trim() !== '') {
-      const searchTerm = `%${search.trim()}%`;
-      [tenants, total] = await repo.findAndCount({
-        where: [
-          { ...whereCondition, name: ILike(searchTerm) },
-          { ...whereCondition, companyEmail: ILike(searchTerm) },
-        ],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+    const where: FindOptionsWhere<Tenant> | FindOptionsWhere<Tenant>[] = normalizedSearch
+      ? [
+          { ...whereCondition, name: ILike(`%${normalizedSearch}%`) },
+          { ...whereCondition, companyEmail: ILike(`%${normalizedSearch}%`) },
+        ]
+      : whereCondition;
+
+    return this.findAndCountPaginated(
+      page,
+      pageSize,
+      {
+        where,
         order: {
           [sortBy]: sortOrder,
         },
-      });
-    } else {
-      [tenants, total] = await repo.findAndCount({
-        where: whereCondition,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-        order: {
-          [sortBy]: sortOrder,
-        },
-      });
-    }
-
-    if (tenants.length > 0) {
-      const tenantIds = tenants.map((tenant) => tenant.id);
-      const userRepo = manager ? manager.getRepository(User) : repo.manager.getRepository(User);
-      const users = await userRepo.find({
-        where: {
-          tenantId: In(tenantIds),
-        },
-        order: {
-          createdAt: 'ASC',
-        },
-      });
-
-      const userMap = new Map<string, User>();
-      for (const user of users) {
-        if (user.tenantId && !userMap.has(user.tenantId)) {
-          userMap.set(user.tenantId, user);
-        }
-      }
-
-      for (const tenant of tenants) {
-        tenant.primaryAdmin = userMap.get(tenant.id);
-      }
-    }
-
-    return [tenants, total];
+      },
+      manager,
+    );
   }
 }

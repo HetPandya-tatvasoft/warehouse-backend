@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { ConfigService } from '@nestjs/config';
@@ -13,6 +13,7 @@ import { TenantStatus } from '../enums/tenant-status.enum';
 import { PageAccess } from '../../roles-and-permissions/entities/page-access.entity';
 import { User } from '../../users/entities/user.entity';
 import { UserRepository } from '../../users/repositories/user.repository';
+import { UserRoleRepository } from '../../users/repositories/user-role.repository';
 import { RoleRepository } from '../../roles-and-permissions/repositories/role.repository';
 import { RolePageRightRepository } from '../../roles-and-permissions/repositories/role-page-right.repository';
 import { PlatformRoleCodes } from '../../../common/enums/role.enum';
@@ -24,6 +25,10 @@ import { AUTH_CONSTANTS } from '@/common/constants/auth.constants';
 import { EMAIL_TEMPLATES } from '../../mail/templates/email-templates';
 import { MESSAGES } from '@/common/constants/messages.constants';
 
+import { TenantBranchRepository } from '../../branches/repositories/tenant-branch.repository';
+import { UserBranchRepository } from '../../branches/repositories/user-branch.repository';
+import { BranchStatus } from '../../branches/enums/branch-status.enum';
+
 @Injectable()
 export class TenantService {
   private readonly logger = new Logger(TenantService.name);
@@ -32,12 +37,15 @@ export class TenantService {
     private readonly tenantRepository: TenantRepository,
     private readonly dataSource: DataSource,
     private readonly userRepository: UserRepository,
+    private readonly userRoleRepository: UserRoleRepository,
     private readonly roleRepository: RoleRepository,
     private readonly rolePageRightRepository: RolePageRightRepository,
     @InjectRepository(PageAccess)
     private readonly pageAccessRepository: Repository<PageAccess>,
     private readonly mailService: MailService,
     private readonly configService: ConfigService,
+    private readonly tenantBranchRepository: TenantBranchRepository,
+    private readonly userBranchRepository: UserBranchRepository,
   ) {}
 
   async onboard(dto: TenantOnboardingDto, user: ICurrentUserData) {
@@ -70,7 +78,7 @@ export class TenantService {
     let savedUser: User;
 
     await this.dataSource.transaction(async (manager) => {
-      savedTenant = await this.tenantRepository.createTenant(
+      const tenantInstance = this.tenantRepository.create(
         {
           name: dto.companyName,
           slug: dto.slug,
@@ -87,9 +95,22 @@ export class TenantService {
         },
         manager,
       );
+      savedTenant = await this.tenantRepository.save(tenantInstance, manager);
+
+      // Create Default Branch (with custom name only)
+      const branchInstance = this.tenantBranchRepository.create(
+        {
+          name: dto.branchName,
+          status: BranchStatus.ACTIVE,
+          tenantId: savedTenant.id,
+          isDeleted: false,
+        },
+        manager,
+      );
+      const savedBranch = await this.tenantBranchRepository.save(branchInstance, manager);
 
       // Create Tenant Admin Role
-      const savedRole = await this.roleRepository.createRole(
+      const roleInstance = this.roleRepository.create(
         {
           name: PlatformRoleCodes.TENANT_ADMIN,
           tenantId: savedTenant.id,
@@ -98,6 +119,7 @@ export class TenantService {
         },
         manager,
       );
+      const savedRole = await this.roleRepository.save(roleInstance, manager);
 
       // default permissions
       if (pageAccessIds.length > 0) {
@@ -108,8 +130,8 @@ export class TenantService {
       tempPassword = this.generateSecurePassword();
       const passwordHash = await bcrypt.hash(tempPassword, AUTH_CONSTANTS.HASH_SALT_ROUNDS);
 
-      //Create Primary Administrator User and assign role
-      savedUser = await this.userRepository.createUserWithRoles(
+      // Create Primary Administrator User and assign role
+      const userInstance = this.userRepository.create(
         {
           tenantId: savedTenant.id,
           email: dto.primaryAdministrator.email,
@@ -118,9 +140,30 @@ export class TenantService {
           lastName: dto.primaryAdministrator.lastName,
           isActive: true,
         },
-        [savedRole.id],
         manager,
       );
+      savedUser = await this.userRepository.save(userInstance, manager);
+
+      const userRoleInstance = this.userRoleRepository.create(
+        {
+          userId: savedUser.id,
+          roleId: savedRole.id,
+        },
+        manager,
+      );
+      await this.userRoleRepository.save(userRoleInstance, manager);
+
+      // Assign Tenant Admin to Default Branch as primary branch
+      const userBranchInstance = this.userBranchRepository.create(
+        {
+          userId: savedUser.id,
+          branchId: savedBranch.id,
+          isPrimary: true,
+          assignedBy: user.userId,
+        },
+        manager,
+      );
+      await this.userBranchRepository.save(userBranchInstance, manager);
     });
 
     const appUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
@@ -163,7 +206,7 @@ export class TenantService {
 
     const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC', search, status } = query;
 
-    const [tenants, totalItems] = await this.tenantRepository.findPaginated(
+    const paginatedTenants = await this.tenantRepository.findPaginated(
       page,
       pageSize,
       sortBy,
@@ -172,12 +215,42 @@ export class TenantService {
       status,
     );
 
+    if (!paginatedTenants.items.length) {
+      return {
+        ...paginatedTenants,
+        items: [],
+      };
+    }
+
+    const tenantIds = paginatedTenants.items.map((tenant) => tenant.id);
+    const users = await this.userRepository.find({
+      where: {
+        tenantId: In(tenantIds),
+      },
+      order: {
+        createdAt: 'ASC',
+      },
+    });
+
+    const primaryAdminMap = new Map<string, User>();
+    for (const u of users) {
+      if (u.tenantId && !primaryAdminMap.has(u.tenantId)) {
+        primaryAdminMap.set(u.tenantId, u);
+      }
+    }
+
+    const items = paginatedTenants.items.map((tenant) => {
+      const tenantDto = TenantMapper.toTenantResponseDto(tenant);
+      const admin = primaryAdminMap.get(tenant.id);
+      return {
+        ...tenantDto,
+        primaryAdmin: admin,
+      };
+    });
+
     return {
-      items: tenants.map((tenant) => TenantMapper.toTenantResponseDto(tenant)),
-      page,
-      pageSize,
-      totalItems,
-      totalPages: Math.ceil(totalItems / pageSize),
+      ...paginatedTenants,
+      items,
     };
   }
 

@@ -2,24 +2,15 @@ import { EntityManager, Repository, IsNull } from 'typeorm';
 import { RolePageRight } from '../entities/role-page-right.entity';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { BaseRepository } from '../../../common/repositories/base.repository';
 
 @Injectable()
-export class RolePageRightRepository {
+export class RolePageRightRepository extends BaseRepository<RolePageRight> {
   constructor(
     @InjectRepository(RolePageRight)
-    private readonly repository: Repository<RolePageRight>,
-  ) {}
-
-  async findByRoleId(roleId: string, manager?: EntityManager): Promise<RolePageRight[]> {
-    const repository = manager ? manager.getRepository(RolePageRight) : this.repository;
-    return repository.find({
-      where: { roleId },
-    });
-  }
-
-  async deleteByRoleId(roleId: string, manager?: EntityManager): Promise<void> {
-    const repository = manager ? manager.getRepository(RolePageRight) : this.repository;
-    await repository.delete({ roleId });
+    repository: Repository<RolePageRight>,
+  ) {
+    super(RolePageRight, repository);
   }
 
   async bulkInsert(roleId: string, pageAccessIds: string[], manager?: EntityManager): Promise<void> {
@@ -42,34 +33,36 @@ export class RolePageRightRepository {
     accessTypeName: string,
     manager?: EntityManager,
   ): Promise<boolean> {
-    const repository = manager ? manager.getRepository(RolePageRight) : this.repository;
-    const result = await repository.findOne({
-      where: {
-        role: {
-          isDeleted: false,
-          tenantId: tenantId ?? IsNull(),
-          userRoles: {
-            userId,
-            user: {
-              isActive: true,
+    const result = await this.findOne(
+      {
+        where: {
+          role: {
+            isDeleted: false,
+            tenantId: tenantId ?? IsNull(),
+            userRoles: {
+              userId,
+              user: {
+                isActive: true,
+              },
+            },
+          },
+          pageAccess: {
+            page: {
+              name: pageName,
+              isDeleted: false,
+            },
+            accessType: {
+              name: accessTypeName,
+              isDeleted: false,
             },
           },
         },
-        pageAccess: {
-          page: {
-            name: pageName,
-            isDeleted: false,
-          },
-          accessType: {
-            name: accessTypeName,
-            isDeleted: false,
-          },
+        select: {
+          id: true,
         },
       },
-      select: {
-        id: true,
-      },
-    });
+      manager,
+    );
     return !!result;
   }
 
@@ -78,48 +71,50 @@ export class RolePageRightRepository {
     tenantId: string | null,
     manager?: EntityManager,
   ): Promise<RolePageRight[]> {
-    const repository = manager ? manager.getRepository(RolePageRight) : this.repository;
-    return repository.find({
-      where: {
-        role: {
-          isDeleted: false,
-          tenantId: tenantId ?? IsNull(),
-          userRoles: {
-            userId,
-            user: {
-              isActive: true,
+    return this.find(
+      {
+        where: {
+          role: {
+            isDeleted: false,
+            tenantId: tenantId ?? IsNull(),
+            userRoles: {
+              userId,
+              user: {
+                isActive: true,
+              },
+            },
+          },
+          pageAccess: {
+            page: {
+              isDeleted: false,
+            },
+            accessType: {
+              isDeleted: false,
             },
           },
         },
-        pageAccess: {
-          page: {
-            isDeleted: false,
-          },
-          accessType: {
-            isDeleted: false,
+        relations: {
+          pageAccess: {
+            page: true,
+            accessType: true,
           },
         },
-      },
-      relations: {
-        pageAccess: {
-          page: true,
-          accessType: true,
-        },
-      },
-      select: {
-        id: true,
-        pageAccess: {
+        select: {
           id: true,
-          page: {
+          pageAccess: {
             id: true,
-            name: true,
-          },
-          accessType: {
-            id: true,
-            name: true,
+            page: {
+              id: true,
+              name: true,
+            },
+            accessType: {
+              id: true,
+              name: true,
+            },
           },
         },
       },
-    });
+      manager,
+    );
   }
 }

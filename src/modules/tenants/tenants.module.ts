@@ -7,9 +7,10 @@ import { TenantRepository } from './repositories/tenant.repository';
 import { UsersModule } from '../users/users.module';
 import { RolesAndPermissionsModule } from '../roles-and-permissions/roles-and-permissions.module';
 import { MailModule } from '../mail/mail.module';
+import { BranchesModule } from '../branches/branches.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Tenant]), UsersModule, RolesAndPermissionsModule, MailModule],
+  imports: [TypeOrmModule.forFeature([Tenant]), UsersModule, RolesAndPermissionsModule, MailModule, BranchesModule],
   controllers: [PlatformTenantController],
   providers: [TenantService, TenantRepository],
   exports: [TypeOrmModule, TenantService, TenantRepository],

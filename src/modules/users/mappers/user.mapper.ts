@@ -15,6 +15,11 @@ export interface IUserResponseDto {
     name: string;
     description?: string;
   }>;
+  branches: Array<{
+    id: string;
+    name: string;
+    isPrimary: boolean;
+  }>;
 }
 
 export class UserMapper {
@@ -46,6 +51,15 @@ export class UserMapper {
               id: ur.role.id,
               name: ur.role.name,
               description: ur.role.description,
+            }))
+        : [],
+      branches: user.userBranches
+        ? user.userBranches
+            .filter((ub) => ub.branch)
+            .map((ub) => ({
+              id: ub.branch.id,
+              name: ub.branch.name,
+              isPrimary: ub.isPrimary,
             }))
         : [],
     };

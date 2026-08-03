@@ -20,6 +20,11 @@ export const MESSAGES = {
     CANNOT_SELF_DEACTIVATE: 'You cannot deactivate your own account',
     CANNOT_SELF_UPDATE: 'You cannot update your own account',
     UNAUTHORIZED: 'User is not authenticated',
+    BRANCH_ASSIGNMENT_REQUIRED:
+      'Both branch assignments (branchIds) and a primary branch (primaryBranchId) must be supplied together.',
+    PRIMARY_BRANCH_MUST_BE_ASSIGNED: 'Primary branch must be one of the assigned branches.',
+    BRANCHES_NOT_FOUND_OR_INACTIVE:
+      'One or more of the assigned branches were not found, are inactive, or belong to another tenant.',
   },
   ROLE: {
     CREATE_SUCCESS: 'Role created successfully',
@@ -50,6 +55,9 @@ export const MESSAGES = {
     DELETE_SUCCESS: 'Branch deleted successfully',
     NOT_FOUND: 'Branch not found',
     NAME_EXISTS: 'Branch with this name already exists within this tenant',
+    TENANT_REQUIRED: 'Tenant ID is required to manage branches.',
+    CANNOT_DELETE_ASSIGNED: 'Cannot delete branch because users are assigned to it.',
+    CANNOT_DELETE_LAST_ACTIVE: 'Cannot delete the last active branch for the tenant.',
   },
   COMMON: {
     FORBIDDEN: 'You do not have permission to access this resource',
