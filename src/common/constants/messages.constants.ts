@@ -42,6 +42,15 @@ export const MESSAGES = {
     EMAIL_EXISTS: 'User with this email already exists',
     ACCESS_DENIED: 'Access denied. Only Platform Super Admin can access this resource.',
   },
+  BRANCH: {
+    CREATE_SUCCESS: 'Branch created successfully',
+    FETCH_SUCCESS: 'Branch fetched successfully',
+    FETCH_ALL_SUCCESS: 'Branches fetched successfully',
+    UPDATE_SUCCESS: 'Branch updated successfully',
+    DELETE_SUCCESS: 'Branch deleted successfully',
+    NOT_FOUND: 'Branch not found',
+    NAME_EXISTS: 'Branch with this name already exists within this tenant',
+  },
   COMMON: {
     FORBIDDEN: 'You do not have permission to access this resource',
     INTERNAL_SERVER_ERROR: 'Internal server error',

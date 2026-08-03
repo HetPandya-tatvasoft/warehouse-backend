@@ -10,6 +10,7 @@ export class PageSeeder {
     const pagesToSeed = [
       { name: 'Users', description: 'User management page' },
       { name: 'Roles', description: 'Role and permission management page' },
+      { name: 'Branches', description: 'Branch management page' },
     ];
 
     await this.dataSource.transaction(async (transactionalEntityManager) => {

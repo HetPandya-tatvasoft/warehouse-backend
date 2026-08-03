@@ -9,6 +9,8 @@ import { Permission } from '../modules/roles-and-permissions/entities/permission
 import { Page } from '../modules/roles-and-permissions/entities/page.entity';
 import { PageAccess } from '../modules/roles-and-permissions/entities/page-access.entity';
 import { RolePageRight } from '../modules/roles-and-permissions/entities/role-page-right.entity';
+import { TenantBranch } from '../modules/branches/entities/tenant-branch.entity';
+import { UserBranch } from '../modules/branches/entities/user-branch.entity';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -23,7 +25,19 @@ const AppDataSource = new DataSource({
   synchronize: false,
   logging: false,
 
-  entities: [Tenant, Role, User, UserRole, RefreshToken, Permission, Page, PageAccess, RolePageRight],
+  entities: [
+    Tenant,
+    Role,
+    User,
+    UserRole,
+    RefreshToken,
+    Permission,
+    Page,
+    PageAccess,
+    RolePageRight,
+    TenantBranch,
+    UserBranch,
+  ],
 
   migrations: ['src/database/migrations/*{.ts,.js}'],
 });
