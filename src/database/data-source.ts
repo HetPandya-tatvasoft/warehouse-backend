@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
+import './database.config';
 import { Tenant } from '../modules/tenants/entities/tenant.entity';
 import { Role } from '../modules/roles-and-permissions/entities/role.entity';
 import { User } from '../modules/users/entities/user.entity';
@@ -11,6 +12,10 @@ import { PageAccess } from '../modules/roles-and-permissions/entities/page-acces
 import { RolePageRight } from '../modules/roles-and-permissions/entities/role-page-right.entity';
 import { TenantBranch } from '../modules/branches/entities/tenant-branch.entity';
 import { UserBranch } from '../modules/branches/entities/user-branch.entity';
+import { Country } from '@/modules/reference-data/entities/country.entity';
+import { State } from '@/modules/reference-data/entities/state.entity';
+import { City } from '@/modules/reference-data/entities/city.entity';
+import { Address } from '../common/entities/address.entity';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -37,6 +42,10 @@ const AppDataSource = new DataSource({
     RolePageRight,
     TenantBranch,
     UserBranch,
+    Country,
+    State,
+    City,
+    Address,
   ],
 
   migrations: ['src/database/migrations/*{.ts,.js}'],

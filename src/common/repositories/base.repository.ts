@@ -42,12 +42,6 @@ export abstract class BaseRepository<TEntity extends ObjectLiteral> {
     return this.getRepository(entityManager).save(entities);
   }
 
-  async exists(where: FindOptionsWhere<TEntity>, entityManager?: EntityManager): Promise<boolean> {
-    return this.getRepository(entityManager).exists({
-      where,
-    });
-  }
-
   async findOne(options: FindOneOptions<TEntity>, entityManager?: EntityManager): Promise<TEntity | null> {
     return this.getRepository(entityManager).findOne(options);
   }

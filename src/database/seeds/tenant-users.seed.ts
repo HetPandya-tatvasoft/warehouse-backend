@@ -3,6 +3,10 @@ import { DataSource } from 'typeorm';
 import { Role } from '../../modules/roles-and-permissions/entities/role.entity';
 import { Tenant } from '../../modules/tenants/entities/tenant.entity';
 import { User } from '../../modules/users/entities/user.entity';
+import { Country } from '../../modules/reference-data/entities/country.entity';
+import { State } from '../../modules/reference-data/entities/state.entity';
+import { City } from '../../modules/reference-data/entities/city.entity';
+import { Address } from '../../common/entities/address.entity';
 import { UserRole } from '../../modules/users/entities/user-role.entity';
 import { PlatformRoleCodes } from '../../common/enums/role.enum';
 import { PageAccess } from '../../modules/roles-and-permissions/entities/page-access.entity';
@@ -30,8 +34,47 @@ export class TenantUserSeeder {
       });
 
       if (!tenant) {
+        const countries = await transactionalEntityManager
+          .getRepository(Country)
+          .find({ order: { id: 'ASC' }, take: 1 });
+        const country = countries[0];
+        if (!country) {
+          throw new Error('No seeded country found for address seeding');
+        }
+        const states = await transactionalEntityManager.getRepository(State).find({
+          where: { countryId: country.id },
+          order: { id: 'ASC' },
+          take: 1,
+        });
+        const state = states[0];
+        if (!state) {
+          throw new Error('No seeded state found for address seeding');
+        }
+        const cities = await transactionalEntityManager.getRepository(City).find({
+          where: { stateId: state.id },
+          order: { id: 'ASC' },
+          take: 1,
+        });
+        const city = cities[0];
+        if (!city) {
+          throw new Error('No seeded city found for address seeding');
+        }
+
+        const addressRepo = transactionalEntityManager.getRepository(Address);
+        let address = addressRepo.create({
+          addressLine1: 'SG Road',
+          addressLine2: 'SG Highway',
+          countryId: country.id,
+          stateId: state.id,
+          cityId: city.id,
+          postalCode: '380054',
+        });
+        address = await addressRepo.save(address);
+
         tenant = tenantRepository.create({
           name: tenantName,
+          slug: 'tatvasoft',
+          addressId: address.id,
         });
         tenant = await tenantRepository.save(tenant);
       }

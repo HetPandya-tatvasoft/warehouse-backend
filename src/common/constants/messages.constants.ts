@@ -68,6 +68,17 @@ export const MESSAGES = {
     EMAIL_SEND_FAILED: 'Failed to send email.',
     EMAIL_SEND_ERROR: 'Unable to send email.',
   },
+  REGION: {
+    FETCH_COUNTRIES_SUCCESS: 'Countries fetched successfully',
+    FETCH_COUNTRY_SUCCESS: 'Country fetched successfully',
+    FETCH_STATES_SUCCESS: 'States fetched successfully',
+    FETCH_STATE_SUCCESS: 'State fetched successfully',
+    FETCH_CITIES_SUCCESS: 'Cities fetched successfully',
+    FETCH_CITY_SUCCESS: 'City fetched successfully',
+    COUNTRY_NOT_FOUND: 'Country not found',
+    STATE_NOT_FOUND: 'State not found',
+    CITY_NOT_FOUND: 'City not found',
+  },
 } as const;
 
 export const VALIDATION_MESSAGES = {

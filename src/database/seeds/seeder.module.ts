@@ -7,12 +7,15 @@ import { RolesAndPermissionsModule } from '@/modules/roles-and-permissions/roles
 import { TenantsModule } from '@/modules/tenants/tenants.module';
 import { UsersModule } from '@/modules/users/users.module';
 import { AuthModule } from '@/modules/auth/auth.module';
+import { ReferenceDataModule } from '@/modules/reference-data/reference-data.module';
+import { SharedModule } from '@/common/shared.module';
 import { PageSeeder } from './authorization/page.seeder';
 import { PermissionSeeder } from './authorization/permission.seeder';
 import { PageAccessSeeder } from './authorization/page-access.seeder';
 import { AuthorizationSeeder } from './authorization/authorization.seeder';
 import { SuperAdminSeeder } from './super-admin.seed';
 import { TenantUserSeeder } from './tenant-users.seed';
+import { ReferenceDataSeeder } from './reference-data.seed';
 
 @Module({
   imports: [
@@ -35,12 +38,22 @@ import { TenantUserSeeder } from './tenant-users.seed';
         logging: false,
       }),
     }),
+    SharedModule,
     TenantsModule,
     RolesAndPermissionsModule,
     UsersModule,
     AuthModule,
+    ReferenceDataModule,
   ],
-  providers: [PageSeeder, PermissionSeeder, PageAccessSeeder, AuthorizationSeeder, SuperAdminSeeder, TenantUserSeeder],
-  exports: [AuthorizationSeeder, SuperAdminSeeder, TenantUserSeeder],
+  providers: [
+    PageSeeder,
+    PermissionSeeder,
+    PageAccessSeeder,
+    AuthorizationSeeder,
+    SuperAdminSeeder,
+    TenantUserSeeder,
+    ReferenceDataSeeder,
+  ],
+  exports: [AuthorizationSeeder, SuperAdminSeeder, TenantUserSeeder, ReferenceDataSeeder],
 })
 export class SeederModule {}

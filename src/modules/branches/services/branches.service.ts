@@ -9,12 +9,16 @@ import { IPaginatedResponse } from '@/common/types/api-response.interface';
 import { MESSAGES } from '@/common/constants/messages.constants';
 import { UserBranchRepository } from '../repositories/user-branch.repository';
 import { BranchStatus } from '../enums/branch-status.enum';
+import { AddressService } from '../../../common/services/address.service';
+import { RegionService } from '../../reference-data/services/region.service';
 
 @Injectable()
 export class BranchesService {
   constructor(
     private readonly tenantBranchRepository: TenantBranchRepository,
     private readonly userBranchRepository: UserBranchRepository,
+    private readonly addressService: AddressService,
+    private readonly regionService: RegionService,
   ) {}
 
   async createBranch(createBranchDto: CreateBranchDto, currentUser: ICurrentUserData): Promise<TenantBranch> {
@@ -34,16 +38,32 @@ export class BranchesService {
       throw new ConflictException(MESSAGES.BRANCH.NAME_EXISTS);
     }
 
+    if (createBranchDto.countryId && createBranchDto.stateId && createBranchDto.cityId) {
+      await this.regionService.validateAddress(
+        createBranchDto.countryId,
+        createBranchDto.stateId,
+        createBranchDto.cityId,
+      );
+    } else {
+      throw new BadRequestException(
+        'Complete address details (countryId, stateId, cityId) are required to create a branch.',
+      );
+    }
+
+    const address = await this.addressService.createAddress({
+      addressLine1: createBranchDto.addressLine1 || '',
+      addressLine2: createBranchDto.addressLine2,
+      countryId: createBranchDto.countryId,
+      stateId: createBranchDto.stateId,
+      cityId: createBranchDto.cityId,
+      postalCode: createBranchDto.postalCode || '',
+    });
+
     const branch = this.tenantBranchRepository.create({
       name: createBranchDto.name,
       status: createBranchDto.status,
       tenantId: currentUser.tenantId,
-      addressLine1: createBranchDto.addressLine1,
-      addressLine2: createBranchDto.addressLine2,
-      city: createBranchDto.city,
-      state: createBranchDto.state,
-      country: createBranchDto.country,
-      postalCode: createBranchDto.postalCode,
+      addressId: address.id,
     });
     return this.tenantBranchRepository.save(branch);
   }
@@ -102,7 +122,7 @@ export class BranchesService {
       throw new NotFoundException(MESSAGES.BRANCH.NOT_FOUND);
     }
 
-    if (updateBranchDto.name && updateBranchDto.name !== branch.name) {
+    if (updateBranchDto.name !== branch.name) {
       const existingBranch = await this.tenantBranchRepository.findByNameAndTenant(
         updateBranchDto.name,
         currentUser.tenantId,
@@ -113,14 +133,35 @@ export class BranchesService {
       }
     }
 
-    branch.name = updateBranchDto.name ?? branch.name;
-    branch.status = updateBranchDto.status ?? branch.status;
-    branch.addressLine1 = updateBranchDto.addressLine1;
-    branch.addressLine2 = updateBranchDto.addressLine2;
-    branch.city = updateBranchDto.city;
-    branch.state = updateBranchDto.state;
-    branch.country = updateBranchDto.country;
-    branch.postalCode = updateBranchDto.postalCode;
+    branch.name = updateBranchDto.name;
+    branch.status = updateBranchDto.status;
+
+    await this.regionService.validateAddress(
+      updateBranchDto.countryId,
+      updateBranchDto.stateId,
+      updateBranchDto.cityId,
+    );
+
+    if (branch.address) {
+      await this.addressService.updateAddress(branch.address.id, {
+        addressLine1: updateBranchDto.addressLine1,
+        addressLine2: updateBranchDto.addressLine2,
+        countryId: updateBranchDto.countryId,
+        stateId: updateBranchDto.stateId,
+        cityId: updateBranchDto.cityId,
+        postalCode: updateBranchDto.postalCode,
+      });
+    } else {
+      const address = await this.addressService.createAddress({
+        addressLine1: updateBranchDto.addressLine1,
+        addressLine2: updateBranchDto.addressLine2,
+        countryId: updateBranchDto.countryId,
+        stateId: updateBranchDto.stateId,
+        cityId: updateBranchDto.cityId,
+        postalCode: updateBranchDto.postalCode,
+      });
+      branch.addressId = address.id;
+    }
 
     return this.tenantBranchRepository.save(branch);
   }

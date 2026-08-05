@@ -8,9 +8,17 @@ import { UsersModule } from '../users/users.module';
 import { RolesAndPermissionsModule } from '../roles-and-permissions/roles-and-permissions.module';
 import { MailModule } from '../mail/mail.module';
 import { BranchesModule } from '../branches/branches.module';
+import { ReferenceDataModule } from '../reference-data/reference-data.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Tenant]), UsersModule, RolesAndPermissionsModule, MailModule, BranchesModule],
+  imports: [
+    TypeOrmModule.forFeature([Tenant]),
+    UsersModule,
+    RolesAndPermissionsModule,
+    MailModule,
+    BranchesModule,
+    ReferenceDataModule,
+  ],
   controllers: [PlatformTenantController],
   providers: [TenantService, TenantRepository],
   exports: [TypeOrmModule, TenantService, TenantRepository],

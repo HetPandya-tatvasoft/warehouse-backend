@@ -65,6 +65,13 @@ export class TenantRepository extends BaseRepository<Tenant> {
         order: {
           [sortBy]: sortOrder,
         },
+        relations: {
+          address: {
+            city: true,
+            state: true,
+            country: true,
+          },
+        },
       },
       manager,
     );

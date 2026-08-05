@@ -10,9 +10,22 @@ export interface ITenantResponseDto {
   companyPhone?: string;
   addressLine1?: string;
   addressLine2?: string;
-  city?: string;
-  state?: string;
-  country?: string;
+  country?: {
+    id: number;
+    name: string;
+    code: string;
+  };
+  state?: {
+    id: number;
+    name: string;
+    code: string;
+    countryId: number;
+  };
+  city?: {
+    id: number;
+    name: string;
+    stateId: number;
+  };
   postalCode?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -36,12 +49,31 @@ export class TenantMapper {
       status: tenant.status,
       companyEmail: tenant.companyEmail,
       companyPhone: tenant.companyPhone,
-      addressLine1: tenant.addressLine1,
-      addressLine2: tenant.addressLine2,
-      city: tenant.city,
-      state: tenant.state,
-      country: tenant.country,
-      postalCode: tenant.postalCode,
+      addressLine1: tenant.address?.addressLine1,
+      addressLine2: tenant.address?.addressLine2,
+      country: tenant.address?.country
+        ? {
+            id: tenant.address.country.id,
+            name: tenant.address.country.name,
+            code: tenant.address.country.code,
+          }
+        : undefined,
+      state: tenant.address?.state
+        ? {
+            id: tenant.address.state.id,
+            name: tenant.address.state.name,
+            code: tenant.address.state.code,
+            countryId: tenant.address.state.countryId,
+          }
+        : undefined,
+      city: tenant.address?.city
+        ? {
+            id: tenant.address.city.id,
+            name: tenant.address.city.name,
+            stateId: tenant.address.city.stateId,
+          }
+        : undefined,
+      postalCode: tenant.address?.postalCode,
       createdAt: tenant.createdAt,
       updatedAt: tenant.updatedAt,
       primaryAdmin: tenant.primaryAdmin

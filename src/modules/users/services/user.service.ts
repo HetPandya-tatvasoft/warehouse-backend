@@ -184,66 +184,47 @@ export class UserService {
       throw new BadRequestException(MESSAGES.USER.CANNOT_SELF_UPDATE);
     }
 
-    if (updateUserDto.roleIds && updateUserDto.roleIds.length > 0) {
-      for (const roleId of updateUserDto.roleIds) {
-        const role = await this.roleRepository.findById(roleId, currentUser.tenantId);
-        if (!role) {
-          throw new NotFoundException(MESSAGES.ROLE.NOT_FOUND_IN_TENANT(roleId));
-        }
+    for (const roleId of updateUserDto.roleIds) {
+      const role = await this.roleRepository.findById(roleId, currentUser.tenantId);
+      if (!role) {
+        throw new NotFoundException(MESSAGES.ROLE.NOT_FOUND_IN_TENANT(roleId));
       }
     }
 
-    const hasBranchIds = !!updateUserDto.branchIds && updateUserDto.branchIds.length > 0;
-    const hasPrimary = !!updateUserDto.primaryBranchId;
-
-    if (
-      (updateUserDto.branchIds !== undefined || updateUserDto.primaryBranchId !== undefined) &&
-      hasBranchIds !== hasPrimary
-    ) {
-      throw new BadRequestException(MESSAGES.USER.BRANCH_ASSIGNMENT_REQUIRED);
+    const userDataToUpdate: Partial<typeof existingUser> = {
+      firstName: updateUserDto.firstName,
+      lastName: updateUserDto.lastName,
+    };
+    if (updateUserDto.isActive !== undefined) {
+      userDataToUpdate.isActive = updateUserDto.isActive;
     }
-
-    const userDataToUpdate: Partial<typeof existingUser> = {};
-    if (updateUserDto.firstName !== undefined) userDataToUpdate.firstName = updateUserDto.firstName;
-    if (updateUserDto.lastName !== undefined) userDataToUpdate.lastName = updateUserDto.lastName;
-    if (updateUserDto.isActive !== undefined) userDataToUpdate.isActive = updateUserDto.isActive;
 
     const updatedUser = await this.dataSource.transaction(async (manager) => {
-      if (Object.keys(userDataToUpdate).length > 0) {
-        await this.userRepository.getRepository(manager).update(id, userDataToUpdate);
-      }
+      await this.userRepository.getRepository(manager).update(id, userDataToUpdate);
 
-      if (updateUserDto.roleIds !== undefined) {
-        await this.userRoleRepository.getRepository(manager).delete({ userId: id });
-
-        if (updateUserDto.roleIds.length > 0) {
-          const newUserRoles = updateUserDto.roleIds.map((roleId) =>
-            this.userRoleRepository.create(
-              {
-                userId: id,
-                roleId,
-              },
-              manager,
-            ),
-          );
-          await this.userRoleRepository.saveMany(newUserRoles, manager);
-        }
-      }
-
-      if (updateUserDto.branchIds && updateUserDto.primaryBranchId) {
-        const userBranches = await this.validateAndPrepareUserBranches(
-          updateUserDto.branchIds,
-          updateUserDto.primaryBranchId,
-          currentUser.tenantId!,
-          id,
-          currentUser.userId,
+      await this.userRoleRepository.getRepository(manager).delete({ userId: id });
+      const newUserRoles = updateUserDto.roleIds.map((roleId) =>
+        this.userRoleRepository.create(
+          {
+            userId: id,
+            roleId,
+          },
           manager,
-        );
+        ),
+      );
+      await this.userRoleRepository.saveMany(newUserRoles, manager);
 
-        await this.userBranchRepository.getRepository(manager).delete({ userId: id });
+      const userBranches = await this.validateAndPrepareUserBranches(
+        updateUserDto.branchIds,
+        updateUserDto.primaryBranchId,
+        currentUser.tenantId!,
+        id,
+        currentUser.userId,
+        manager,
+      );
 
-        await this.userBranchRepository.saveMany(userBranches, manager);
-      }
+      await this.userBranchRepository.getRepository(manager).delete({ userId: id });
+      await this.userBranchRepository.saveMany(userBranches, manager);
 
       return await this.userRepository.findByIdWithBranches(id, currentUser.tenantId, manager);
     });

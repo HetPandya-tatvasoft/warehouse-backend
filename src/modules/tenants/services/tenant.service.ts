@@ -10,6 +10,8 @@ import { TenantOnboardingDto } from '../dto/tenant-onboarding.dto';
 import { TenantPaginationQueryDto } from '../dto/tenant-pagination.dto';
 import { Tenant } from '../entities/tenant.entity';
 import { TenantStatus } from '../enums/tenant-status.enum';
+import { AddressService } from '../../../common/services/address.service';
+import { RegionService } from '../../reference-data/services/region.service';
 import { PageAccess } from '../../roles-and-permissions/entities/page-access.entity';
 import { User } from '../../users/entities/user.entity';
 import { UserRepository } from '../../users/repositories/user.repository';
@@ -46,6 +48,8 @@ export class TenantService {
     private readonly configService: ConfigService,
     private readonly tenantBranchRepository: TenantBranchRepository,
     private readonly userBranchRepository: UserBranchRepository,
+    private readonly addressService: AddressService,
+    private readonly regionService: RegionService,
   ) {}
 
   async onboard(dto: TenantOnboardingDto, user: ICurrentUserData) {
@@ -73,11 +77,27 @@ export class TenantService {
     });
     const pageAccessIds = activePageAccesses.map((pa) => pa.id);
 
+    // Validate Address hierarchy
+    await this.regionService.validateAddress(dto.countryId, dto.stateId, dto.cityId);
+
     let tempPassword = '';
     let savedTenant: Tenant;
     let savedUser: User;
 
     await this.dataSource.transaction(async (manager) => {
+      // Create Address
+      const savedAddress = await this.addressService.createAddress(
+        {
+          addressLine1: dto.addressLine1,
+          addressLine2: dto.addressLine2,
+          countryId: dto.countryId,
+          stateId: dto.stateId,
+          cityId: dto.cityId,
+          postalCode: dto.postalCode,
+        },
+        manager,
+      );
+
       const tenantInstance = this.tenantRepository.create(
         {
           name: dto.companyName,
@@ -85,12 +105,7 @@ export class TenantService {
           status: TenantStatus.ACTIVE,
           companyEmail: dto.companyEmail,
           companyPhone: dto.companyPhone,
-          addressLine1: dto.addressLine1,
-          addressLine2: dto.addressLine2,
-          city: dto.city,
-          state: dto.state,
-          country: dto.country,
-          postalCode: dto.postalCode,
+          addressId: savedAddress.id,
           isDeleted: false,
         },
         manager,

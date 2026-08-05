@@ -1,6 +1,5 @@
 import { Type, Transform } from 'class-transformer';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, ValidateNested, IsIn } from 'class-validator';
-import { ALLOWED_CITIES, ALLOWED_COUNTRIES, ALLOWED_STATES } from '../../../common/constants/locations.constant';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength, ValidateNested, IsInt } from 'class-validator';
 import { VALIDATION_MESSAGES } from '@/common/constants/messages.constants';
 
 export class PrimaryAdministratorDto {
@@ -61,29 +60,20 @@ export class TenantOnboardingDto {
   @Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value))
   addressLine2?: string;
 
-  @IsString()
+  @IsInt()
   @IsNotEmpty()
-  @IsIn(ALLOWED_CITIES, {
-    message: VALIDATION_MESSAGES.TENANT.CITY_ALLOWED,
-  })
-  @Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value))
-  city!: string;
+  @Type(() => Number)
+  cityId!: number;
 
-  @IsString()
+  @IsInt()
   @IsNotEmpty()
-  @IsIn(ALLOWED_STATES, {
-    message: VALIDATION_MESSAGES.TENANT.STATE_ALLOWED,
-  })
-  @Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value))
-  state!: string;
+  @Type(() => Number)
+  stateId!: number;
 
-  @IsString()
+  @IsInt()
   @IsNotEmpty()
-  @IsIn(ALLOWED_COUNTRIES, {
-    message: VALIDATION_MESSAGES.TENANT.COUNTRY_ALLOWED,
-  })
-  @Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value))
-  country!: string;
+  @Type(() => Number)
+  countryId!: number;
 
   @IsString()
   @IsNotEmpty()

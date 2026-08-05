@@ -1,4 +1,5 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, OneToOne } from 'typeorm';
+import { Address } from '../../../common/entities/address.entity';
 
 import { TenantStatus } from '../enums/tenant-status.enum';
 import { AuditableEntity } from '@/common/entities/auditable.entity';
@@ -47,49 +48,17 @@ export class Tenant extends AuditableEntity {
   companyPhone?: string;
 
   @Column({
-    name: 'address_line_1',
-    type: 'varchar',
-    length: 255,
-    nullable: true,
+    name: 'address_id',
+    type: 'uuid',
   })
-  addressLine1?: string;
+  addressId!: string;
 
-  @Column({
-    name: 'address_line_2',
-    type: 'varchar',
-    length: 255,
-    nullable: true,
+  @OneToOne(() => Address, {
+    onDelete: 'CASCADE',
+    nullable: false,
   })
-  addressLine2?: string;
-
-  @Column({
-    type: 'varchar',
-    length: 100,
-    nullable: true,
-  })
-  city?: string;
-
-  @Column({
-    type: 'varchar',
-    length: 100,
-    nullable: true,
-  })
-  state?: string;
-
-  @Column({
-    type: 'varchar',
-    length: 100,
-    nullable: true,
-  })
-  country?: string;
-
-  @Column({
-    name: 'postal_code',
-    type: 'varchar',
-    length: 20,
-    nullable: true,
-  })
-  postalCode?: string;
+  @JoinColumn({ name: 'address_id' })
+  address!: Address;
 
   @Column({
     name: 'is_deleted',

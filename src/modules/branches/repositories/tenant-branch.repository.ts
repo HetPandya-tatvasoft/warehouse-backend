@@ -23,6 +23,13 @@ export class TenantBranchRepository extends BaseRepository<TenantBranch> {
           tenantId,
           isDeleted: false,
         },
+        relations: {
+          address: {
+            city: true,
+            state: true,
+            country: true,
+          },
+        },
       },
       manager,
     );
@@ -74,6 +81,13 @@ export class TenantBranchRepository extends BaseRepository<TenantBranch> {
         where,
         order: {
           [sortBy]: sortOrder,
+        },
+        relations: {
+          address: {
+            city: true,
+            state: true,
+            country: true,
+          },
         },
       },
       manager,

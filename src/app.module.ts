@@ -8,6 +8,8 @@ import { RolesAndPermissionsModule } from './modules/roles-and-permissions/roles
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BranchesModule } from './modules/branches/branches.module';
+import { ReferenceDataModule } from './modules/reference-data/reference-data.module';
+import { SharedModule } from './common/shared.module';
 
 @Module({
   imports: [
@@ -34,11 +36,13 @@ import { BranchesModule } from './modules/branches/branches.module';
         logging: false,
       }),
     }),
+    SharedModule,
     TenantsModule,
     RolesAndPermissionsModule,
     UsersModule,
     AuthModule,
     BranchesModule,
+    ReferenceDataModule,
   ],
 })
 export class AppModule {}

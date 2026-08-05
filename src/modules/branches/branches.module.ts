@@ -7,9 +7,10 @@ import { UserBranchRepository } from './repositories/user-branch.repository';
 import { BranchesService } from './services/branches.service';
 import { BranchesController } from './controllers/branches.controller';
 import { RolesAndPermissionsModule } from '../roles-and-permissions/roles-and-permissions.module';
+import { ReferenceDataModule } from '../reference-data/reference-data.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TenantBranch, UserBranch]), RolesAndPermissionsModule],
+  imports: [TypeOrmModule.forFeature([TenantBranch, UserBranch]), RolesAndPermissionsModule, ReferenceDataModule],
   controllers: [BranchesController],
   providers: [TenantBranchRepository, UserBranchRepository, BranchesService],
   exports: [TenantBranchRepository, UserBranchRepository, BranchesService, TypeOrmModule],
