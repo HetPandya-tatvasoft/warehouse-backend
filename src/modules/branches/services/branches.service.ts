@@ -10,7 +10,6 @@ import { MESSAGES } from '@/common/constants/messages.constants';
 import { UserBranchRepository } from '../repositories/user-branch.repository';
 import { BranchStatus } from '../enums/branch-status.enum';
 import { AddressService } from '../../../common/services/address.service';
-import { RegionService } from '../../reference-data/services/region.service';
 
 @Injectable()
 export class BranchesService {
@@ -18,7 +17,6 @@ export class BranchesService {
     private readonly tenantBranchRepository: TenantBranchRepository,
     private readonly userBranchRepository: UserBranchRepository,
     private readonly addressService: AddressService,
-    private readonly regionService: RegionService,
   ) {}
 
   async createBranch(createBranchDto: CreateBranchDto, currentUser: ICurrentUserData): Promise<TenantBranch> {
@@ -38,13 +36,7 @@ export class BranchesService {
       throw new ConflictException(MESSAGES.BRANCH.NAME_EXISTS);
     }
 
-    if (createBranchDto.countryId && createBranchDto.stateId && createBranchDto.cityId) {
-      await this.regionService.validateAddress(
-        createBranchDto.countryId,
-        createBranchDto.stateId,
-        createBranchDto.cityId,
-      );
-    } else {
+    if (!createBranchDto.countryId || !createBranchDto.stateId || !createBranchDto.cityId) {
       throw new BadRequestException(
         'Complete address details (countryId, stateId, cityId) are required to create a branch.',
       );
@@ -73,13 +65,7 @@ export class BranchesService {
       throw new BadRequestException(MESSAGES.BRANCH.TENANT_REQUIRED);
     }
 
-    const branch = await this.tenantBranchRepository.findOne({
-      where: {
-        id: id,
-        tenantId: currentUser.tenantId,
-        isDeleted: false,
-      },
-    });
+    const branch = await this.tenantBranchRepository.findByIdAndTenant(id, currentUser.tenantId);
     if (!branch) {
       throw new NotFoundException(MESSAGES.BRANCH.NOT_FOUND);
     }
@@ -135,12 +121,6 @@ export class BranchesService {
 
     branch.name = updateBranchDto.name;
     branch.status = updateBranchDto.status;
-
-    await this.regionService.validateAddress(
-      updateBranchDto.countryId,
-      updateBranchDto.stateId,
-      updateBranchDto.cityId,
-    );
 
     if (branch.address) {
       await this.addressService.updateAddress(branch.address.id, {

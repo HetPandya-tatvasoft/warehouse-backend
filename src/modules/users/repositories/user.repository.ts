@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, ILike, FindOptionsWhere, EntityManager, FindOptionsRelations } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { BaseRepository } from '../../../common/repositories/base.repository';
-import { IPaginatedResponse } from '@/common/types/api-response.interface';
+import { IPaginatedResponse } from '../../../common/types/api-response.interface';
 
 @Injectable()
 export class UserRepository extends BaseRepository<User> {
@@ -130,5 +130,36 @@ export class UserRepository extends BaseRepository<User> {
 
     const result = await this.update(whereCondition, { isActive }, manager);
     return (result.affected ?? 0) > 0;
+  }
+
+  async searchTenantUsers(searchTerm: string, tenantId: string | null, limit = 20): Promise<User[]> {
+    const searchPattern = searchTerm ? `%${searchTerm}%` : undefined;
+    let where: FindOptionsWhere<User>[];
+
+    if (searchPattern) {
+      const parts = searchTerm.trim().split(/\s+/);
+      const isFullNameSearch = parts.length > 1;
+
+      if (isFullNameSearch) {
+        const firstNamePart = ILike(`%${parts[0]}%`);
+        const lastNamePart = ILike(`%${parts.slice(1).join(' ')}%`);
+        where = [
+          { tenantId: tenantId ?? IsNull(), isActive: true, firstName: firstNamePart, lastName: lastNamePart },
+          { tenantId: tenantId ?? IsNull(), isActive: true, firstName: lastNamePart, lastName: firstNamePart },
+          { tenantId: tenantId ?? IsNull(), isActive: true, email: ILike(searchPattern) },
+        ];
+      } else {
+        const pattern = ILike(searchPattern);
+        where = [
+          { tenantId: tenantId ?? IsNull(), isActive: true, firstName: pattern },
+          { tenantId: tenantId ?? IsNull(), isActive: true, lastName: pattern },
+          { tenantId: tenantId ?? IsNull(), isActive: true, email: pattern },
+        ];
+      }
+    } else {
+      where = [{ tenantId: tenantId ?? IsNull(), isActive: true }];
+    }
+
+    return this.find({ where, take: limit });
   }
 }

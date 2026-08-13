@@ -11,6 +11,7 @@ export class PageSeeder {
       { name: 'Users', description: 'User management page' },
       { name: 'Roles', description: 'Role and permission management page' },
       { name: 'Branches', description: 'Branch management page' },
+      { name: 'Warehouses', description: 'Warehouse management page' },
     ];
 
     await this.dataSource.transaction(async (transactionalEntityManager) => {

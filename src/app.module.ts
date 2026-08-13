@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { ReferenceDataModule } from './modules/reference-data/reference-data.module';
 import { SharedModule } from './common/shared.module';
+import { WarehousesModule } from './modules/warehouses/warehouses.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { SharedModule } from './common/shared.module';
     AuthModule,
     BranchesModule,
     ReferenceDataModule,
+    WarehousesModule,
   ],
 })
 export class AppModule {}

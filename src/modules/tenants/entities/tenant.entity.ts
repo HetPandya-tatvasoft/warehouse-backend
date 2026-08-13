@@ -1,8 +1,9 @@
-import { Column, Entity, Index, JoinColumn, OneToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, OneToOne, OneToMany } from 'typeorm';
 import { Address } from '../../../common/entities/address.entity';
 
 import { TenantStatus } from '../enums/tenant-status.enum';
 import { AuditableEntity } from '@/common/entities/auditable.entity';
+import { TenantBranch } from '../../branches/entities/tenant-branch.entity';
 
 @Index('uq_tenants_slug', ['slug'], {
   unique: true,
@@ -66,4 +67,7 @@ export class Tenant extends AuditableEntity {
     default: false,
   })
   isDeleted!: boolean;
+
+  @OneToMany(() => TenantBranch, (branch) => branch.tenant)
+  branches!: TenantBranch[];
 }

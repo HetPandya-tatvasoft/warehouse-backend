@@ -1,9 +1,10 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, OneToOne, OneToMany } from 'typeorm';
 import { Address } from '../../../common/entities/address.entity';
 
 import { AuditableEntity } from '../../../common/entities/auditable.entity';
 import { Tenant } from '../../tenants/entities/tenant.entity';
 import { BranchStatus } from '../enums/branch-status.enum';
+import { Warehouse } from '../../warehouses/entities/warehouse.entity';
 
 @Index('uq_tenant_branches_tenant_name', ['tenantId', 'name'], {
   unique: true,
@@ -19,7 +20,7 @@ export class TenantBranch extends AuditableEntity {
   })
   tenantId!: string;
 
-  @ManyToOne(() => Tenant, {
+  @ManyToOne(() => Tenant, (tenant) => tenant.branches, {
     onDelete: 'RESTRICT',
   })
   @JoinColumn({ name: 'tenant_id' })
@@ -58,4 +59,7 @@ export class TenantBranch extends AuditableEntity {
     default: false,
   })
   isDeleted!: boolean;
+
+  @OneToMany(() => Warehouse, (warehouse) => warehouse.branch)
+  warehouses!: Warehouse[];
 }

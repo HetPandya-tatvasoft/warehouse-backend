@@ -16,6 +16,9 @@ import { Country } from '@/modules/reference-data/entities/country.entity';
 import { State } from '@/modules/reference-data/entities/state.entity';
 import { City } from '@/modules/reference-data/entities/city.entity';
 import { Address } from '../common/entities/address.entity';
+import { Warehouse } from '../modules/warehouses/entities/warehouse.entity';
+import { Contact } from '../modules/warehouses/entities/contact.entity';
+import { WarehouseContact } from '../modules/warehouses/entities/warehouse-contact.entity';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -46,6 +49,9 @@ const AppDataSource = new DataSource({
     State,
     City,
     Address,
+    Warehouse,
+    Contact,
+    WarehouseContact,
   ],
 
   migrations: ['src/database/migrations/*{.ts,.js}'],

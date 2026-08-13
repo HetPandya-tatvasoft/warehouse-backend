@@ -9,6 +9,8 @@ import { UsersModule } from '@/modules/users/users.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { ReferenceDataModule } from '@/modules/reference-data/reference-data.module';
 import { SharedModule } from '@/common/shared.module';
+import { BranchesModule } from '@/modules/branches/branches.module';
+import { WarehousesModule } from '@/modules/warehouses/warehouses.module';
 import { PageSeeder } from './authorization/page.seeder';
 import { PermissionSeeder } from './authorization/permission.seeder';
 import { PageAccessSeeder } from './authorization/page-access.seeder';
@@ -44,6 +46,8 @@ import { ReferenceDataSeeder } from './reference-data.seed';
     UsersModule,
     AuthModule,
     ReferenceDataModule,
+    BranchesModule,
+    WarehousesModule,
   ],
   providers: [
     PageSeeder,

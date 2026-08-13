@@ -2,6 +2,7 @@ export enum Page {
   Users = 'Users',
   Roles = 'Roles',
   Branches = 'Branches',
+  Warehouses = 'Warehouses',
 }
 
 export enum Permission {

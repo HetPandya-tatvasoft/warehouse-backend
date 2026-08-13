@@ -4,7 +4,7 @@ import { EntityManager, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import { TenantBranch } from '../entities/tenant-branch.entity';
 import { BranchStatus } from '../enums/branch-status.enum';
 import { BaseRepository } from '../../../common/repositories/base.repository';
-import { IPaginatedResponse } from '@/common/types/api-response.interface';
+import { IPaginatedResponse } from '../../../common/types/api-response.interface';
 
 @Injectable()
 export class TenantBranchRepository extends BaseRepository<TenantBranch> {
