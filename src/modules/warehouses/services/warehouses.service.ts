@@ -46,16 +46,13 @@ export class WarehousesService {
     warehouseId?: string,
   ): Promise<void> {
     const branch = await this.tenantBranchRepository.findOne({
-      where: { id: activeBranchId, isDeleted: false },
+      where: { id: activeBranchId, tenantId: currentUser.tenantId!, isDeleted: false },
     });
     if (!branch) {
       throw new NotFoundException(MESSAGES.WAREHOUSE.BRANCH_NOT_FOUND);
     }
     if (branch.status !== BranchStatus.ACTIVE) {
       throw new BadRequestException(MESSAGES.WAREHOUSE.BRANCH_INACTIVE);
-    }
-    if (branch.tenantId !== currentUser.tenantId) {
-      throw new ForbiddenException(MESSAGES.WAREHOUSE.ACCESS_DENIED);
     }
 
     const isAssigned = await this.userBranchRepository.findOne({
@@ -163,28 +160,14 @@ export class WarehousesService {
   }
 
   async findWarehouseForUpdate(id: string, currentUser: ICurrentUserData, activeBranchId: string): Promise<Warehouse> {
-    const existingWarehouse = await this.warehouseRepository.findOne({
-      where: { id, branchId: activeBranchId },
-      relations: { branch: true },
-    });
-    if (!existingWarehouse) {
-      throw new NotFoundException(MESSAGES.WAREHOUSE.NOT_FOUND);
-    }
-    if (existingWarehouse.branch.tenantId !== currentUser.tenantId) {
-      throw new ForbiddenException(MESSAGES.WAREHOUSE.ACCESS_DENIED);
-    }
-
     const branch = await this.tenantBranchRepository.findOne({
-      where: { id: activeBranchId, isDeleted: false },
+      where: { id: activeBranchId, tenantId: currentUser.tenantId!, isDeleted: false },
     });
     if (!branch) {
       throw new NotFoundException(MESSAGES.WAREHOUSE.BRANCH_NOT_FOUND);
     }
     if (branch.status !== BranchStatus.ACTIVE) {
       throw new BadRequestException(MESSAGES.WAREHOUSE.BRANCH_INACTIVE);
-    }
-    if (branch.tenantId !== currentUser.tenantId) {
-      throw new ForbiddenException(MESSAGES.WAREHOUSE.ACCESS_DENIED);
     }
 
     // Validate user has access to active branch
@@ -193,6 +176,14 @@ export class WarehousesService {
     });
     if (!isAssigned) {
       throw new ForbiddenException(MESSAGES.WAREHOUSE.BRANCH_ACCESS_DENIED);
+    }
+
+    const existingWarehouse = await this.warehouseRepository.findOne({
+      where: { id, branchId: activeBranchId },
+      relations: { branch: true },
+    });
+    if (!existingWarehouse) {
+      throw new NotFoundException(MESSAGES.WAREHOUSE.NOT_FOUND);
     }
 
     return existingWarehouse;
@@ -385,28 +376,22 @@ export class WarehousesService {
     activeBranchId: string,
   ): Promise<WarehouseResponseDto> {
     const warehouse = await this.warehouseRepository.findOne({
-      where: { id, branchId: activeBranchId },
+      where: { id, branchId: activeBranchId, branch: { tenantId: currentUser.tenantId! } },
       relations: { address: true, branch: true, contacts: { contact: true } },
     });
     if (!warehouse) {
       throw new NotFoundException(MESSAGES.WAREHOUSE.NOT_FOUND);
-    }
-    if (warehouse.branch.tenantId !== currentUser.tenantId) {
-      throw new ForbiddenException(MESSAGES.WAREHOUSE.ACCESS_DENIED);
     }
     return WarehouseMapper.toResponseDto(warehouse);
   }
 
   async deleteWarehouse(id: string, currentUser: ICurrentUserData, activeBranchId: string): Promise<void> {
     const warehouse = await this.warehouseRepository.findOne({
-      where: { id, branchId: activeBranchId },
+      where: { id, branchId: activeBranchId, branch: { tenantId: currentUser.tenantId! } },
       relations: { branch: true },
     });
     if (!warehouse) {
       throw new NotFoundException(MESSAGES.WAREHOUSE.NOT_FOUND);
-    }
-    if (warehouse.branch.tenantId !== currentUser.tenantId) {
-      throw new ForbiddenException(MESSAGES.WAREHOUSE.ACCESS_DENIED);
     }
 
     await this.dataSource.transaction(async (manager) => {
