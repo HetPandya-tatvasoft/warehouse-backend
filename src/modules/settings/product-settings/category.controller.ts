@@ -30,6 +30,13 @@ export class CategoryController {
     return ApiResponseUtil.success(result, MESSAGES.PRODUCT_CATEGORY.FETCH_ALL_SUCCESS);
   }
 
+  @Get('tree')
+  @Permissions(Page.ProductCategories, Permission.VIEW)
+  async getCategoryTree(@CurrentUser() user: ICurrentUserData) {
+    const result = await this.categoryService.getCategoryTree(user);
+    return ApiResponseUtil.success(result, MESSAGES.PRODUCT_CATEGORY.FETCH_ALL_SUCCESS);
+  }
+
   @Get(':id')
   @Permissions(Page.ProductCategories, Permission.VIEW)
   async getCategoryById(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: ICurrentUserData) {

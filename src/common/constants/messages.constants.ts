@@ -88,6 +88,9 @@ export const MESSAGES = {
     NOT_FOUND: 'Product category not found',
     NAME_EXISTS: 'Product category with this name already exists.',
     ACCESS_DENIED: 'Access denied: You do not have access to this product category',
+    SELF_PARENTING: 'A category cannot be its own parent',
+    CIRCULAR_DEPENDENCY: 'A category cannot be a descendant of itself or create a circular dependency',
+    HAS_CHILDREN: 'Cannot delete category because it has child categories',
   },
   COMMON: {
     FORBIDDEN: 'You do not have permission to access this resource',
@@ -122,5 +125,8 @@ export const VALIDATION_MESSAGES = {
     CITY_ALLOWED: 'City must be one of the allowed cities',
     STATE_ALLOWED: 'State must be one of the allowed states',
     COUNTRY_ALLOWED: 'Country must be one of the allowed countries',
+  },
+  PRODUCT_CATEGORY: {
+    NAME_REQUIRED: 'Category name is required',
   },
 } as const;

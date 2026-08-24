@@ -6,6 +6,7 @@ export class CategoryMapper {
     const dto = new CategoryResponseDto();
     dto.id = category.id;
     dto.tenantId = category.tenantId;
+    dto.parentId = category.parentId;
     dto.name = category.name;
     dto.description = category.description;
     dto.status = category.status;
