@@ -56,7 +56,7 @@ const AppDataSource = new DataSource({
     ProductCategory,
   ],
 
-  migrations: ['src/database/migrations/*{.ts,.js}'],
+  migrations: process.env.NODE_ENV === 'production' ? ['dist/database/migrations/*.js'] : ['src/database/migrations/*.ts'],
 });
 
 export default AppDataSource;

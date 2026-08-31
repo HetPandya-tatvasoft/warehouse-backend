@@ -21,8 +21,10 @@
     "typeorm": "ts-node --project tsconfig.typeorm.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d src/database/data-source.ts",
     "migration:generate": "pnpm typeorm migration:generate",
     "migration:run": "pnpm typeorm migration:run",
+    "migration:run:prod": "typeorm migration:run -d dist/database/data-source.js",
     "migration:revert": "pnpm typeorm migration:revert",
-    "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts",
+    "seed:prod": "node dist/database/seeds/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -48,6 +50,7 @@
     "reflect-metadata": "^0.2.2",
     "resend": "^6.17.2",
     "rxjs": "^7.8.1",
+    "terminus": "^1.1.0",
     "typeorm": "^1.0.0"
   },
   "devDependencies": {

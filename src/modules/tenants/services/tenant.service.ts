@@ -112,12 +112,26 @@ export class TenantService {
       );
       savedTenant = await this.tenantRepository.save(tenantInstance, manager);
 
-      // Create Default Branch (with custom name only)
+      // Create Default Branch Address
+
+      const savedBranchAddress = await this.addressService.createAddress(
+        {
+          addressLine1: dto.addressLine1,
+          addressLine2: dto.addressLine2,
+          countryId: dto.countryId,
+          stateId: dto.stateId,
+          cityId: dto.cityId,
+          postalCode: dto.postalCode,
+        },
+        manager,
+      );
+
       const branchInstance = this.tenantBranchRepository.create(
         {
           name: dto.branchName,
           status: BranchStatus.ACTIVE,
           tenantId: savedTenant.id,
+          addressId: savedBranchAddress.id,
           isDeleted: false,
         },
         manager,

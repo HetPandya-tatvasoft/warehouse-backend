@@ -8,7 +8,8 @@ export interface ICountryItem {
 export interface IStateItem {
   id: number;
   name: string;
-  state_code: string;
+  state_code?: string;
+  iso2?: string;
   cities: ICityItem[];
 }
 

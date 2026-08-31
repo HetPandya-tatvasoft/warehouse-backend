@@ -1,17 +1,34 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { Response } from 'express';
 import type { IApiErrorResponse } from '../types/api-response.interface';
 import { MESSAGES } from '@/common/constants/messages.constants';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
 
     const response = ctx.getResponse<Response>();
-    // const request = ctx.getRequest<Request>();
 
-    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status =
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    // Log unexpected server-side errors.
+    // The client will still receive the safe generic message below.
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      this.logger.error(exception);
+    }
 
     let message: string = MESSAGES.COMMON.INTERNAL_SERVER_ERROR;
     let errors: string[] | undefined;
@@ -22,7 +39,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
       if (typeof exceptionResponse === 'string') {
         message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
+      } else if (
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse !== null
+      ) {
         const responseObj = exceptionResponse as {
           message?: string | string[];
           errors?: string[];

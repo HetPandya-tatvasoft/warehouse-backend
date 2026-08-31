@@ -12,7 +12,7 @@ import { MESSAGES } from '@/common/constants/messages.constants';
 export class PlatformTenantController {
   constructor(private readonly tenantService: TenantService) {}
 
-  @Post()
+  @Post('onboard')
   @UseGuards(JWTAuthGuard)
   async onboard(@Body() dto: TenantOnboardingDto, @CurrentUser() user: ICurrentUserData) {
     const result = await this.tenantService.onboard(dto, user);

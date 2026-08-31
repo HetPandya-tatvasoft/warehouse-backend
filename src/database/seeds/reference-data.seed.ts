@@ -13,13 +13,22 @@ import * as path from 'node:path';
 export class ReferenceDataSeeder {
   private static readonly INSERT_CHUNK_SIZE = 5000;
 
+  // Map to track duplicate state redirects: key = duplicateStateId, value = primaryStateId
+  private readonly stateRedirectMap = new Map<number, number>();
+
   constructor(private readonly dataSource: DataSource) {}
 
   async seed(): Promise<void> {
     const countryRepository = this.dataSource.getRepository(Country);
-    const alreadySeeded = await countryRepository.exists();
+    const stateRepository = this.dataSource.getRepository(State);
+    const cityRepository = this.dataSource.getRepository(City);
 
-    if (alreadySeeded) {
+    // Check if tables are already fully populated to prevent skipping during partial seeds
+    const hasCountries = await countryRepository.exists();
+    const hasStates = await stateRepository.exists();
+    const hasCities = await cityRepository.exists();
+
+    if (hasCountries && hasStates && hasCities) {
       console.log('Reference data is already seeded. So skipping that.');
       return;
     }
@@ -40,7 +49,10 @@ export class ReferenceDataSeeder {
   }
 
   private async readDataset(): Promise<ICountryItem[]> {
-    const filePath = path.join(process.cwd(), 'src/database/datasets/countries+states+cities.json');
+    const filePath = path.join(
+      __dirname,
+      '../datasets/countries+states+cities.json',
+    );
     if (!existsSync(filePath)) {
       throw new Error('Reference data file not found.');
     }
@@ -65,18 +77,48 @@ export class ReferenceDataSeeder {
 
   private extractStates(countriesData: ICountryItem[]): QueryDeepPartialEntity<State>[] {
     const statesToInsert: QueryDeepPartialEntity<State>[] = [];
+
+    // Unique keys tracking for unique constraints ['countryId', 'name'] and ['countryId', 'code']
+    const seenNames = new Set<string>();
+    const seenCodes = new Set<string>();
+
+    const stateNameMap = new Map<string, number>();
+    const stateCodeMap = new Map<string, number>();
+
     for (const country of countriesData) {
       if (country.states) {
         for (const state of country.states) {
-          if (!state.state_code) {
+          const stateCode = state.iso2;
+          if (!stateCode) {
             throw new Error(
-              `Missing state_code for state "${state.name}" (ID: ${state.id}) in country "${country.name}".`,
+              `Missing ISO2 code for state "${state.name}" (ID: ${state.id}) in country "${country.name}".`,
             );
           }
+
+          const nameKey = `${country.id}_${state.name.toLowerCase()}`;
+          const codeKey = `${country.id}_${stateCode.toLowerCase()}`;
+
+          // If duplicate name/code in country, redirect child cities to the primary state ID
+          if (seenNames.has(nameKey)) {
+            const primaryId = stateNameMap.get(nameKey)!;
+            this.stateRedirectMap.set(state.id, primaryId);
+            continue;
+          }
+          if (seenCodes.has(codeKey)) {
+            const primaryId = stateCodeMap.get(codeKey)!;
+            this.stateRedirectMap.set(state.id, primaryId);
+            continue;
+          }
+
+          seenNames.add(nameKey);
+          seenCodes.add(codeKey);
+          stateNameMap.set(nameKey, state.id);
+          stateCodeMap.set(codeKey, state.id);
+
           statesToInsert.push({
             id: state.id,
             name: state.name,
-            code: state.state_code,
+            code: stateCode,
             countryId: country.id,
           });
         }
@@ -87,15 +129,30 @@ export class ReferenceDataSeeder {
 
   private extractCities(countriesData: ICountryItem[]): QueryDeepPartialEntity<City>[] {
     const citiesToInsert: QueryDeepPartialEntity<City>[] = [];
+    const seenCityNames = new Set<string>(); // composite key stateId_cityName
+
     for (const country of countriesData) {
       if (country.states) {
         for (const state of country.states) {
           if (state.cities) {
+            // Resolve to primary state ID if this state was a duplicate
+            const resolvedStateId = this.stateRedirectMap.has(state.id)
+              ? this.stateRedirectMap.get(state.id)!
+              : state.id;
+
             for (const city of state.cities) {
+              const cityKey = `${resolvedStateId}_${city.name.toLowerCase()}`;
+
+              // Skip duplicate cities within the same state to satisfy the unique constraint
+              if (seenCityNames.has(cityKey)) {
+                continue;
+              }
+              seenCityNames.add(cityKey);
+
               citiesToInsert.push({
                 id: city.id,
                 name: city.name,
-                stateId: state.id,
+                stateId: resolvedStateId,
               });
             }
           }

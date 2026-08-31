@@ -82,11 +82,6 @@ export class TenantOnboardingDto {
 
   @IsString()
   @IsNotEmpty()
-  @Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value))
-  timezone!: string;
-
-  @IsString()
-  @IsNotEmpty()
   @MaxLength(150)
   @Transform(({ value }: { value: string }) => (typeof value === 'string' ? value.trim() : value))
   branchName!: string;
