@@ -49,10 +49,7 @@ export class ReferenceDataSeeder {
   }
 
   private async readDataset(): Promise<ICountryItem[]> {
-    const filePath = path.join(
-      __dirname,
-      '../datasets/countries+states+cities.json',
-    );
+    const filePath = path.join(__dirname, '../datasets/countries+states+cities.json');
     if (!existsSync(filePath)) {
       throw new Error('Reference data file not found.');
     }

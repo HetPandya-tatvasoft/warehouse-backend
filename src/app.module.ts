@@ -13,6 +13,7 @@ import { SharedModule } from './common/shared.module';
 import { WarehousesModule } from './modules/warehouses/warehouses.module';
 import { ProductsModule } from './modules/products/products.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { SettingsModule } from './modules/settings/settings.module';
     WarehousesModule,
     ProductsModule,
     SettingsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
