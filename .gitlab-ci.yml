@@ -1,15 +1,10 @@
-workflow:
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "develop"'
-    - if: '$CI_PIPELINE_SOURCE == "web"'
-
 test-oidc:
   stage: .pre
-  tags:
-    - linux
+
   id_tokens:
     AZURE_ID_TOKEN:
-      aud: https://gitlab.anasource.com
+      aud: api://AzureADTokenExchange
+
   script:
-    - echo "Token exists, printing length only:"
+    - echo "OIDC token length:"
     - echo -n "$AZURE_ID_TOKEN" | wc -c
