@@ -12,17 +12,28 @@ variables:
 
 steps:
   - task: AzureCLI@2
-    displayName: 'Build and push image via ACR Build'
+    displayName: 'Build and push image to ACR'
     inputs:
       azureSubscription: 'azure-warehouse-connection'
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
-        az acr build \
-          --registry $(acrName) \
-          --image $(imageName):$(Build.SourceVersion) \
-          --file Dockerfile \
+        set -e
+
+        echo "Logging into Azure Container Registry..."
+        az acr login --name $(acrName)
+
+        echo "Building Docker image..."
+        docker build \
+          -t $(acrName).azurecr.io/$(imageName):$(Build.SourceVersion) \
+          -f Dockerfile \
           .
+
+        echo "Pushing Docker image..."
+        docker push \
+          $(acrName).azurecr.io/$(imageName):$(Build.SourceVersion)
+
+        echo "Image pushed successfully."
 
   - task: AzureCLI@2
     displayName: 'Deploy new revision to Container Apps'
@@ -31,6 +42,8 @@ steps:
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
+        set -e
+
         az containerapp update \
           --name $(containerAppName) \
           --resource-group $(resourceGroup) \
@@ -43,5 +56,11 @@ steps:
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
+        set -e
+
+        echo "Waiting for Container App revision..."
         sleep 20
-        curl -f --max-time 60 https://warehouse-backend.bluerock-4c91c171.centralindia.azurecontainerapps.io/api/health || exit 1
+
+        echo "Checking health endpoint..."
+        curl -f --max-time 60 \
+          https://warehouse-backend.bluerock-4c91c171.centralindia.azurecontainerapps.io/api/health
