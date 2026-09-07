@@ -5,8 +5,12 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-  - script: |
-      echo "Testing pipeline trigger and Azure CLI availability"
-      az --version
-      docker --version
-    displayName: 'Verify tooling'
+  - task: AzureCLI@2
+    displayName: 'Verify Azure login'
+    inputs:
+      azureSubscription: 'azure-warehouse-connection'
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        az account show
+        az group show --name rg-warehouse-learning
