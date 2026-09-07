@@ -11,6 +11,7 @@ variables:
   resourceGroup: 'rg-warehouse-learning'
 
 steps:
+  # Build the Docker image on the Azure DevOps agent and push it to ACR
   - task: AzureCLI@2
     displayName: 'Build and push image to ACR'
     inputs:
@@ -20,21 +21,30 @@ steps:
       inlineScript: |
         set -e
 
+        echo "Getting ACR login server..."
+        ACR_LOGIN_SERVER=$(az acr show \
+          --name $(acrName) \
+          --query loginServer \
+          --output tsv)
+
+        echo "ACR login server: $ACR_LOGIN_SERVER"
+
         echo "Logging into Azure Container Registry..."
         az acr login --name $(acrName)
 
         echo "Building Docker image..."
         docker build \
-          -t $(acrName).azurecr.io/$(imageName):$(Build.SourceVersion) \
+          -t $ACR_LOGIN_SERVER/$(imageName):$(Build.SourceVersion) \
           -f Dockerfile \
           .
 
         echo "Pushing Docker image..."
         docker push \
-          $(acrName).azurecr.io/$(imageName):$(Build.SourceVersion)
+          $ACR_LOGIN_SERVER/$(imageName):$(Build.SourceVersion)
 
         echo "Image pushed successfully."
 
+  # Deploy the newly pushed image to Azure Container Apps
   - task: AzureCLI@2
     displayName: 'Deploy new revision to Container Apps'
     inputs:
@@ -44,11 +54,23 @@ steps:
       inlineScript: |
         set -e
 
+        echo "Getting ACR login server..."
+        ACR_LOGIN_SERVER=$(az acr show \
+          --name $(acrName) \
+          --query loginServer \
+          --output tsv)
+
+        echo "Deploying image:"
+        echo "$ACR_LOGIN_SERVER/$(imageName):$(Build.SourceVersion)"
+
         az containerapp update \
           --name $(containerAppName) \
           --resource-group $(resourceGroup) \
-          --image $(acrName).azurecr.io/$(imageName):$(Build.SourceVersion)
+          --image $ACR_LOGIN_SERVER/$(imageName):$(Build.SourceVersion)
 
+        echo "Container App updated successfully."
+
+  # Verify the deployed application
   - task: AzureCLI@2
     displayName: 'Verify health endpoint'
     inputs:
@@ -62,5 +84,9 @@ steps:
         sleep 20
 
         echo "Checking health endpoint..."
+
         curl -f --max-time 60 \
           https://warehouse-backend.bluerock-4c91c171.centralindia.azurecontainerapps.io/api/health
+
+        echo ""
+        echo "Health check passed."
