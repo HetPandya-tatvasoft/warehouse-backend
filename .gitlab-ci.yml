@@ -1,10 +1,11 @@
-test-oidc:
-  stage: .pre
+stages:
+  - test
 
+test-oidc:
+  stage: test
   id_tokens:
     AZURE_ID_TOKEN:
-      aud: api://AzureADTokenExchange
-
+      aud: https://gitlab.anasource.com
   script:
-    - echo "OIDC token length:"
+    - echo "Token exists, printing length only (never echo the token itself):"
     - echo -n "$AZURE_ID_TOKEN" | wc -c
