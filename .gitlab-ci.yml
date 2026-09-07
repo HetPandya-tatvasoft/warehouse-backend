@@ -3,6 +3,8 @@ stages:
 
 test-oidc:
   stage: test
+  tags:
+    - linux
   id_tokens:
     AZURE_ID_TOKEN:
       aud: https://gitlab.anasource.com
