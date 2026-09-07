@@ -1,16 +1,14 @@
 stages:
   - test
 
-test-oidc:
+test-azure-login:
   stage: test
+  image: mcr.microsoft.com/azure-cli:latest
   tags:
     - sonarqubeprod
-
   id_tokens:
     AZURE_ID_TOKEN:
       aud: https://gitlab.anasource.com
-
   script:
-    - echo "Testing GitLab OIDC..."
-    - echo "Token length:"
-    - echo -n "$AZURE_ID_TOKEN" | wc -c
+    - az login --service-principal -u $AZURE_CLIENT_ID -t $AZURE_TENANT_ID --federated-token $AZURE_ID_TOKEN
+    - az account show
