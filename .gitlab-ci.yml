@@ -1,0 +1,10 @@
+test-oidc:
+  stage: .pre
+  tags:
+    - linux
+  id_tokens:
+    AZURE_ID_TOKEN:
+      aud: https://gitlab.anasource.com
+  script:
+    - echo "Token exists, printing length only:"
+    - echo -n "$AZURE_ID_TOKEN" | wc -c
