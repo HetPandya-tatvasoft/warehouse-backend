@@ -4,13 +4,44 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+variables:
+  acrName: 'warehouselearningacr2026'
+  imageName: 'warehouse-backend'
+  containerAppName: 'warehouse-backend'
+  resourceGroup: 'rg-warehouse-learning'
+
 steps:
   - task: AzureCLI@2
-    displayName: 'Verify Azure login'
+    displayName: 'Build and push image via ACR Build'
     inputs:
       azureSubscription: 'azure-warehouse-connection'
       scriptType: bash
       scriptLocation: inlineScript
       inlineScript: |
-        az account show
-        az group show --name rg-warehouse-learning
+        az acr build \
+          --registry $(acrName) \
+          --image $(imageName):$(Build.SourceVersion) \
+          --file Dockerfile \
+          .
+
+  - task: AzureCLI@2
+    displayName: 'Deploy new revision to Container Apps'
+    inputs:
+      azureSubscription: 'azure-warehouse-connection'
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        az containerapp update \
+          --name $(containerAppName) \
+          --resource-group $(resourceGroup) \
+          --image $(acrName).azurecr.io/$(imageName):$(Build.SourceVersion)
+
+  - task: AzureCLI@2
+    displayName: 'Verify health endpoint'
+    inputs:
+      azureSubscription: 'azure-warehouse-connection'
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        sleep 20
+        curl -f --max-time 60 https://warehouse-backend.bluerock-4c91c171.centralindia.azurecontainerapps.io/api/health || exit 1
