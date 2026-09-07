@@ -4,10 +4,13 @@ stages:
 test-oidc:
   stage: test
   tags:
-    - linux
+    - sonarqubeprod
+
   id_tokens:
     AZURE_ID_TOKEN:
       aud: https://gitlab.anasource.com
+
   script:
-    - echo "Token exists, printing length only (never echo the token itself):"
+    - echo "Testing GitLab OIDC..."
+    - echo "Token length:"
     - echo -n "$AZURE_ID_TOKEN" | wc -c
