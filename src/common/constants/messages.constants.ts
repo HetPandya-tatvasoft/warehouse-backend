@@ -38,6 +38,7 @@ export const MESSAGES = {
     NAME_EXISTS: 'Role with name already exists',
     SYSTEM_ROLES_NO_DELETE: 'System roles cannot be deleted',
     PAGE_ACCESS_INVALID: 'One or more pageAccessIds are invalid',
+    NEW_TEST_MESSAGE: 'Added a new test message'
   },
   TENANT: {
     ONBOARD_SUCCESS: 'Tenant onboarded successfully.',
