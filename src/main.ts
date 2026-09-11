@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import './database/database.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

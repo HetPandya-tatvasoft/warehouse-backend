@@ -11,8 +11,6 @@ export interface IApiErrorResponse {
   errorCode?: string;
 }
 
-export type IApiResponse<T> = IApiSuccessResponse<T> | IApiErrorResponse;
-
 export interface IPaginatedResponse<T> {
   items: T[];
   page: number;

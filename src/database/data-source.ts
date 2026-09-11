@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
+import './database.config';
 import { Tenant } from '../modules/tenants/entities/tenant.entity';
 import { Role } from '../modules/roles-and-permissions/entities/role.entity';
 import { User } from '../modules/users/entities/user.entity';
@@ -9,6 +10,16 @@ import { Permission } from '../modules/roles-and-permissions/entities/permission
 import { Page } from '../modules/roles-and-permissions/entities/page.entity';
 import { PageAccess } from '../modules/roles-and-permissions/entities/page-access.entity';
 import { RolePageRight } from '../modules/roles-and-permissions/entities/role-page-right.entity';
+import { TenantBranch } from '../modules/branches/entities/tenant-branch.entity';
+import { UserBranch } from '../modules/branches/entities/user-branch.entity';
+import { Country } from '@/modules/reference-data/entities/country.entity';
+import { State } from '@/modules/reference-data/entities/state.entity';
+import { City } from '@/modules/reference-data/entities/city.entity';
+import { Address } from '../common/entities/address.entity';
+import { Warehouse } from '../modules/warehouses/entities/warehouse.entity';
+import { Contact } from '../modules/warehouses/entities/contact.entity';
+import { WarehouseContact } from '../modules/warehouses/entities/warehouse-contact.entity';
+import { ProductCategory } from '../modules/settings/product-settings/entities/category.entity';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -20,12 +31,37 @@ const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
 
+  ssl: {
+    rejectUnauthorized: false,
+  },
+
   synchronize: false,
   logging: false,
 
-  entities: [Tenant, Role, User, UserRole, RefreshToken, Permission, Page, PageAccess, RolePageRight],
+  entities: [
+    Tenant,
+    Role,
+    User,
+    UserRole,
+    RefreshToken,
+    Permission,
+    Page,
+    PageAccess,
+    RolePageRight,
+    TenantBranch,
+    UserBranch,
+    Country,
+    State,
+    City,
+    Address,
+    Warehouse,
+    Contact,
+    WarehouseContact,
+    ProductCategory,
+  ],
 
-  migrations: ['src/database/migrations/*{.ts,.js}'],
+  migrations:
+    process.env.NODE_ENV === 'production' ? ['dist/database/migrations/*.js'] : ['src/database/migrations/*.ts'],
 });
 
 export default AppDataSource;

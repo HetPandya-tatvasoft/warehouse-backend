@@ -1,7 +1,9 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, OneToOne, OneToMany } from 'typeorm';
+import { Address } from '../../../common/entities/address.entity';
 
 import { TenantStatus } from '../enums/tenant-status.enum';
 import { AuditableEntity } from '@/common/entities/auditable.entity';
+import { TenantBranch } from '../../branches/entities/tenant-branch.entity';
 
 @Index('uq_tenants_slug', ['slug'], {
   unique: true,
@@ -26,25 +28,38 @@ export class Tenant extends AuditableEntity {
     type: 'enum',
     enum: TenantStatus,
     enumName: 'tenant_status_enum',
-    default: TenantStatus.ACTIVE,
+    default: TenantStatus.PENDING,
   })
   status!: TenantStatus;
 
   @Column({
-    name: 'contact_email',
+    name: 'company_email',
     type: 'varchar',
     length: 255,
     nullable: true,
   })
-  contactEmail?: string;
+  companyEmail?: string;
 
   @Column({
-    name: 'contact_phone',
+    name: 'company_phone',
     type: 'varchar',
     length: 20,
     nullable: true,
   })
-  contactPhone?: string;
+  companyPhone?: string;
+
+  @Column({
+    name: 'address_id',
+    type: 'uuid',
+  })
+  addressId!: string;
+
+  @OneToOne(() => Address, {
+    onDelete: 'CASCADE',
+    nullable: false,
+  })
+  @JoinColumn({ name: 'address_id' })
+  address!: Address;
 
   @Column({
     name: 'is_deleted',
@@ -52,4 +67,7 @@ export class Tenant extends AuditableEntity {
     default: false,
   })
   isDeleted!: boolean;
+
+  @OneToMany(() => TenantBranch, (branch) => branch.tenant)
+  branches!: TenantBranch[];
 }

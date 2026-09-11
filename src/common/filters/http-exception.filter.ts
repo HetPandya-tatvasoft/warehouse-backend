@@ -1,17 +1,27 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Response } from 'express';
+import type { IApiErrorResponse } from '../types/api-response.interface';
+import { MESSAGES } from '@/common/constants/messages.constants';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
 
     const response = ctx.getResponse<Response>();
-    // const request = ctx.getRequest<Request>();
 
     const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    let message = 'Internal server error';
+    // Log unexpected server-side errors.
+    // The client will still receive the safe generic message below.
+    const internalServerErrorLimit: number = HttpStatus.INTERNAL_SERVER_ERROR;
+    if (status >= internalServerErrorLimit) {
+      this.logger.error(exception);
+    }
+
+    let message: string = MESSAGES.COMMON.INTERNAL_SERVER_ERROR;
     let errors: string[] | undefined;
     let errorCode: string | undefined;
 
@@ -28,7 +38,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         };
 
         if (Array.isArray(responseObj.message)) {
-          message = 'Validation failed';
+          message = MESSAGES.COMMON.VALIDATION_FAILED;
           errors = responseObj.message;
         } else {
           message = responseObj.message ?? message;
@@ -39,11 +49,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     }
 
-    response.status(status).json({
+    const errorResponse: IApiErrorResponse = {
       success: false,
       message,
       errors,
       errorCode,
-    });
+    };
+
+    response.status(status).json(errorResponse);
   }
 }

@@ -7,6 +7,13 @@ import { TenantsModule } from './modules/tenants/tenants.module';
 import { RolesAndPermissionsModule } from './modules/roles-and-permissions/roles-and-permissions.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { BranchesModule } from './modules/branches/branches.module';
+import { ReferenceDataModule } from './modules/reference-data/reference-data.module';
+import { SharedModule } from './common/shared.module';
+import { WarehousesModule } from './modules/warehouses/warehouses.module';
+import { ProductsModule } from './modules/products/products.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -26,6 +33,10 @@ import { AuthModule } from './modules/auth/auth.module';
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
 
+        ssl: {
+        rejectUnauthorized: false,
+        },      
+
         autoLoadEntities: true,
 
         synchronize: false,
@@ -33,10 +44,17 @@ import { AuthModule } from './modules/auth/auth.module';
         logging: false,
       }),
     }),
+    SharedModule,
     TenantsModule,
     RolesAndPermissionsModule,
     UsersModule,
     AuthModule,
+    BranchesModule,
+    ReferenceDataModule,
+    WarehousesModule,
+    ProductsModule,
+    SettingsModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
