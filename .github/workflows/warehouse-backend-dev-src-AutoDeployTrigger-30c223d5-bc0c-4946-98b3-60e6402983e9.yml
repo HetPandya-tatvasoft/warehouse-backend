@@ -1,0 +1,45 @@
+name: Trigger auto deployment for warehouse-backend-dev-src
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ develop ]
+    paths:
+    - '**'
+    - '.github/workflows/warehouse-backend-dev-src-AutoDeployTrigger-30c223d5-bc0c-4946-98b3-60e6402983e9.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:
+      
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.WAREHOUSEBACKENDDEVSRC_AZURE_CREDENTIALS }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          _targetLabelKey_: _targetLabel_
+          registryUrl: warehouselearningacr2026-ebdshya8fdayhjaa.azurecr.io
+          registryUsername: ${{ secrets.WAREHOUSEBACKENDDEVSRC_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.WAREHOUSEBACKENDDEVSRC_REGISTRY_PASSWORD }}
+          containerAppName: warehouse-backend-dev-src
+          resourceGroup: rg-warehouse-learning
+          imageToBuild: warehouselearningacr2026-ebdshya8fdayhjaa.azurecr.io/warehouse-backend:${{ github.sha }}
+          
+            
+
+     
+
