@@ -1,0 +1,31 @@
+trigger:
+  branches:
+    include:
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+
+- task: Docker@2
+  displayName: 'Build and push backend Docker image'
+  inputs:
+    containerRegistry: 'warehouse-acr-connection'
+    repository: 'warehouse-backend'
+    command: 'buildAndPush'
+    Dockerfile: 'Dockerfile'
+    buildContext: '.'
+    tags: |
+      appservice-dev-$(Build.SourceVersion)
+
+- task: AzureRmWebAppDeployment@5
+  displayName: 'Deploy backend to Azure App Service'
+  inputs:
+    azureSubscription: 'azure-warehouse-appservice-connection'
+    appType: 'webAppContainer'
+    WebAppName: 'warehouse-backend-apsr'
+    DockerNamespace: 'warehouselearningacr2026-ebdshya8fdayhjaa.azurecr.io'
+    DockerRepository: 'warehouse-backend'
+    DockerImageTag: 'appservice-dev-$(Build.SourceVersion)'
+    AppSettings: '-WEBSITES_PORT 3001'
