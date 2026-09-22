@@ -1,3 +1,5 @@
+name: warehouse-backend-service-dev
+
 trigger:
   branches:
     include:
