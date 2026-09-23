@@ -9,6 +9,12 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+- script: |
+   set -e
+   corepack enable
+   pnpm install --frozen-lockfile
+   pnpm lint
+  displayName: 'Install dependencies, lint, and test'
 
 - task: Docker@2
   displayName: 'Build and push backend Docker image'
