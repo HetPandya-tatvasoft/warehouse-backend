@@ -1,0 +1,73 @@
+name: Deploy Backend to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_WEBAPP_NAME: warehouse-backend-aspr-src
+  NODE_VERSION: '22'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Download our repository onto the GitHub runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Install Node.js 22 on the GitHub runner
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # 3. Enable pnpm
+      - name: Enable pnpm
+        run: corepack enable
+
+      # 4. Install dependencies
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 5. Build NestJS application
+      - name: Build application
+        run: pnpm build
+
+      # 6. Create deployment directory
+      - name: Prepare deployment package
+        run: |
+          rm -rf deploy
+          mkdir deploy
+
+          cp package.json deploy/
+          cp pnpm-lock.yaml deploy/
+          cp pnpm-workspace.yaml deploy/
+
+          cp -r dist deploy/
+
+      # 7. Install production dependencies in deployment directory
+      - name: Install production dependencies
+        working-directory: deploy
+        run: pnpm install --prod --frozen-lockfile
+
+      # 8. Login to Azure using GitHub OIDC
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.WAREHOUSEBACKENDDEVSRCS_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.WAREHOUSEBACKENDDEVSRCS_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.WAREHOUSEBACKENDDEVSRCS_AZURE_SUBSCRIPTION_ID }}
+
+      # 9. Deploy package to Azure App Service
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ./deploy
