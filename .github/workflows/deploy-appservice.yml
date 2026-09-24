@@ -1,73 +1,62 @@
-name: Deploy Backend to Azure App Service
+
+name: Build and deploy Node.js app to Azure Web App - warehouse-backend-aspr-src
 
 on:
   push:
     branches:
-      - main
-
-permissions:
-  id-token: write
-  contents: read
-
-env:
-  AZURE_WEBAPP_NAME: warehouse-backend-aspr-src
-  NODE_VERSION: '22'
+      - develop
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
 
     steps:
-      # 1. Download our repository onto the GitHub runner
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # 2. Install Node.js 22 on the GitHub runner
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js version
+        uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '22.x'
 
-      # 3. Enable pnpm
-      - name: Enable pnpm
-        run: corepack enable
-
-      # 4. Install dependencies
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # 5. Build NestJS application
-      - name: Build application
-        run: pnpm build
-
-      # 6. Create deployment directory
-      - name: Prepare deployment package
+      - name: npm install, build, and test
         run: |
-          rm -rf deploy
-          mkdir deploy
+          npm install
+          npm run build --if-present
+          npm run test --if-present
 
-          cp package.json deploy/
-          cp pnpm-lock.yaml deploy/
-          cp pnpm-workspace.yaml deploy/
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: .
 
-          cp -r dist deploy/
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
-      # 7. Install production dependencies in deployment directory
-      - name: Install production dependencies
-        working-directory: deploy
-        run: pnpm install --prod --frozen-lockfile
-
-      # 8. Login to Azure using GitHub OIDC
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+      
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.WAREHOUSEBACKENDDEVSRC_AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.WAREHOUSEBACKENDDEVSRC_AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.WAREHOUSEBACKENDDEVSRC_AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ secrets.__clientidsecretname__ }}
+          tenant-id: ${{ secrets.__tenantidsecretname__ }}
+          subscription-id: ${{ secrets.__subscriptionidsecretname__ }}
 
-      # 9. Deploy package to Azure App Service
-      - name: Deploy to Azure App Service
+      - name: 'Deploy to Azure Web App'
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: ./deploy
+          app-name: 'warehouse-backend-aspr-src'
+          slot-name: 'Production'
+          package: .
