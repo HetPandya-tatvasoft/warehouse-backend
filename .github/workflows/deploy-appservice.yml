@@ -52,12 +52,18 @@ jobs:
 
           cp -r dist deploy/
 
-      # 7. Install production dependencies in deployment directory
-      - name: Install production dependencies
+      - name: Install production dependencies (hoisted)
         working-directory: deploy
-        run: pnpm install --prod --frozen-lockfile
+        run: |
+          echo "node-linker=hoisted" > .npmrc
+          pnpm install --prod --frozen-lockfile
 
-      # 8. Login to Azure using GitHub OIDC
+      - name: Verify no symlinks in node_modules
+        working-directory: deploy
+        run: |
+          echo "Symlinks found: $(find node_modules -type l | wc -l)"
+          ls node_modules | head
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -65,7 +71,6 @@ jobs:
           tenant-id: ${{ secrets.WAREHOUSEBACKENDDEVSRC_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.WAREHOUSEBACKENDDEVSRC_AZURE_SUBSCRIPTION_ID }}
 
-      # 9. Deploy package to Azure App Service
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
