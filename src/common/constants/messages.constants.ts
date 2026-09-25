@@ -35,7 +35,7 @@ export const MESSAGES = {
     PAGE_RIGHTS_UPDATE_SUCCESS: 'Page rights updated successfully',
     NOT_FOUND: 'Role not found',
     NOT_FOUND_IN_TENANT: (roleId: string) => `Role with ID '${roleId}' not found`,
-    NAME_EXISTS: 'Role with name already exists',
+    NAME_EXISTS: 'Role with this name already exists',
     SYSTEM_ROLES_NO_DELETE: 'System roles cannot be deleted',
     PAGE_ACCESS_INVALID: 'One or more pageAccessIds are invalid',
     NEW_TEST_MESSAGE: 'Added a new test message'
