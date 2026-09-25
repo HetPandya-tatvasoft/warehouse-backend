@@ -18,51 +18,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Download our repository onto the GitHub runner
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. Install Node.js 22 on the GitHub runner
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # 3. Enable pnpm
       - name: Enable pnpm
         run: corepack enable
 
-      # 4. Install dependencies
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 5. Build NestJS application
       - name: Build application
         run: pnpm build
 
-      # 6. Create deployment directory
       - name: Prepare deployment package
         run: |
           rm -rf deploy
           mkdir deploy
-
-          cp package.json deploy/
-          cp pnpm-lock.yaml deploy/
-          cp pnpm-workspace.yaml deploy/
-
+          cp package.json pnpm-lock.yaml deploy/
+          [ -f pnpm-workspace.yaml ] && cp pnpm-workspace.yaml deploy/ || true
           cp -r dist deploy/
 
-      - name: Install production dependencies (hoisted)
+      - name: Install production dependencies (hoisted, no symlinks)
         working-directory: deploy
         run: |
           echo "node-linker=hoisted" > .npmrc
           pnpm install --prod --frozen-lockfile
+          rm -f pnpm-lock.yaml pnpm-workspace.yaml .npmrc
 
-      - name: Verify no symlinks in node_modules
+      - name: Verify no broken symlinks
         working-directory: deploy
         run: |
-          echo "Symlinks found: $(find node_modules -type l | wc -l)"
-          ls node_modules | head
+          echo "Symlinks in node_modules: $(find node_modules -maxdepth 1 -type l | wc -l)"
+          test -d node_modules/joi && echo "joi OK: real directory"
 
       - name: Login to Azure
         uses: azure/login@v2
