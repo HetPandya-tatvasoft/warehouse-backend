@@ -35,6 +35,11 @@ import { ReferenceDataSeeder } from './reference-data.seed';
         username: configService.get<string>('database.username'),
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
+
+        ssl: {
+          rejectUnauthorized: false,
+        },
+
         autoLoadEntities: true,
         synchronize: false,
         logging: false,

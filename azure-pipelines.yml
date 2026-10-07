@@ -4,9 +4,89 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+variables:
+  acrName: 'warehouselearningacr2026'
+  imageName: 'warehouse-backend'
+  containerAppName: 'warehouse-backend'
+  resourceGroup: 'rg-warehouse-learning'
+
 steps:
-  - script: |
-      echo "Testing pipeline trigger and Azure CLI availability"
-      az --version
-      docker --version
-    displayName: 'Verify tooling'
+  # Build the Docker image on the Azure DevOps agent and push it to ACR
+  - task: AzureCLI@2
+    displayName: 'Build and push image to ACR'
+    inputs:
+      azureSubscription: 'azure-warehouse-connection'
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -e
+
+        echo "Getting ACR login server..."
+        ACR_LOGIN_SERVER=$(az acr show \
+          --name $(acrName) \
+          --query loginServer \
+          --output tsv)
+
+        echo "ACR login server: $ACR_LOGIN_SERVER"
+
+        echo "Logging into Azure Container Registry..."
+        az acr login --name $(acrName)
+
+        echo "Building Docker image..."
+        docker build \
+          -t $ACR_LOGIN_SERVER/$(imageName):$(Build.SourceVersion) \
+          -f Dockerfile \
+          .
+
+        echo "Pushing Docker image..."
+        docker push \
+          $ACR_LOGIN_SERVER/$(imageName):$(Build.SourceVersion)
+
+        echo "Image pushed successfully."
+
+  # Deploy the newly pushed image to Azure Container Apps
+  - task: AzureCLI@2
+    displayName: 'Deploy new revision to Container Apps'
+    inputs:
+      azureSubscription: 'azure-warehouse-connection'
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -e
+
+        echo "Getting ACR login server..."
+        ACR_LOGIN_SERVER=$(az acr show \
+          --name $(acrName) \
+          --query loginServer \
+          --output tsv)
+
+        echo "Deploying image:"
+        echo "$ACR_LOGIN_SERVER/$(imageName):$(Build.SourceVersion)"
+
+        az containerapp update \
+          --name $(containerAppName) \
+          --resource-group $(resourceGroup) \
+          --image $ACR_LOGIN_SERVER/$(imageName):$(Build.SourceVersion)
+
+        echo "Container App updated successfully."
+
+  # Verify the deployed application
+  - task: AzureCLI@2
+    displayName: 'Verify health endpoint'
+    inputs:
+      azureSubscription: 'azure-warehouse-connection'
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -e
+
+        echo "Waiting for Container App revision..."
+        sleep 20
+
+        echo "Checking health endpoint..."
+
+        curl -f --max-time 60 \
+          https://warehouse-backend.bluerock-4c91c171.centralindia.azurecontainerapps.io/api/health
+
+        echo ""
+        echo "Health check passed."
