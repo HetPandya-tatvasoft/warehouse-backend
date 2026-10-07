@@ -20,6 +20,7 @@ import { Warehouse } from '../modules/warehouses/entities/warehouse.entity';
 import { Contact } from '../modules/warehouses/entities/contact.entity';
 import { WarehouseContact } from '../modules/warehouses/entities/warehouse-contact.entity';
 import { ProductCategory } from '../modules/settings/product-settings/entities/category.entity';
+import { PasswordResetToken } from '@/modules/auth/entities/password-reset-token.entity';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -40,6 +41,7 @@ const AppDataSource = new DataSource({
     User,
     UserRole,
     RefreshToken,
+    PasswordResetToken,
     Permission,
     Page,
     PageAccess,

@@ -51,7 +51,7 @@ export class RefreshTokenRepository extends BaseRepository<RefreshToken> {
     );
   }
 
-  async revokeAllUserTokens(userId: string): Promise<void> {
+  async revokeAllUserTokens(userId: string, manager?: EntityManager): Promise<void> {
     await this.update(
       {
         userId,
@@ -60,6 +60,7 @@ export class RefreshTokenRepository extends BaseRepository<RefreshToken> {
       {
         revokedAt: new Date(),
       },
+      manager,
     );
   }
 

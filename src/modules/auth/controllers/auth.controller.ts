@@ -12,6 +12,8 @@ import { ApiResponseUtil } from '@/common/utils/api-response.util';
 import { COOKIE_NAMES } from '@/common/constants/cookie.constants';
 import { ACCESS_COOKIE_OPTIONS, REFRESH_COOKIE_OPTIONS } from '@/config/cookie.config';
 import { MESSAGES } from '@/common/constants/messages.constants';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -103,5 +105,19 @@ export class AuthController {
     }
 
     return ApiResponseUtil.success<null>(null, MESSAGES.AUTH.LOGOUT_SUCCESS);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(forgotPasswordDto.email);
+
+    return ApiResponseUtil.success<null>(null, MESSAGES.AUTH.PASSWORD_RESET_EMAIL_SENT);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.password);
+
+    return ApiResponseUtil.success<null>(null, MESSAGES.AUTH.PASSWORD_RESET_SUCCESS);
   }
 }

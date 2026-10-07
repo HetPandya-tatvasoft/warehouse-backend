@@ -11,6 +11,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { PassportModule } from '@nestjs/passport';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { PasswordResetTokenRepository } from './repositories/password-reset-token.repository';
 
 @Module({
   imports: [
@@ -18,7 +20,7 @@ import { RefreshTokenRepository } from './repositories/refresh-token.repository'
     UsersModule,
     MailModule,
     RolesAndPermissionsModule,
-    TypeOrmModule.forFeature([RefreshToken]),
+    TypeOrmModule.forFeature([RefreshToken, PasswordResetToken]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -30,7 +32,7 @@ import { RefreshTokenRepository } from './repositories/refresh-token.repository'
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, RefreshTokenRepository],
+  providers: [AuthService, JwtStrategy, RefreshTokenRepository, PasswordResetTokenRepository],
   exports: [TypeOrmModule],
 })
 export class AuthModule {}

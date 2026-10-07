@@ -2,7 +2,7 @@ import { UserRepository } from '@/modules/users/repositories/user.repository';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserMapper } from '../../users/mappers/user.mapper';
-import { randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +16,9 @@ import { DataSource, EntityManager } from 'typeorm';
 import ms, { StringValue } from 'ms';
 import { PermissionService } from '@/modules/roles-and-permissions/services/permission.service';
 import { MESSAGES } from '@/common/constants/messages.constants';
+import { PasswordResetTokenRepository } from '../repositories/password-reset-token.repository';
+import { MailService } from '@/modules/mail/services/mail.service';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +29,8 @@ export class AuthService {
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly dataSource: DataSource,
     private readonly permissionService: PermissionService,
+    private readonly passwordResetTokenRepository: PasswordResetTokenRepository,
+    private readonly mailService: MailService,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -255,5 +260,137 @@ export class AuthService {
       branches,
       activeBranch,
     };
+  }
+
+  private generatePasswordResetToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  private hashPasswordResetToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private getPasswordResetTokenExpiryDate(): Date {
+    return new Date(Date.now() + AUTH_CONSTANTS.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES * 60 * 1000);
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.userRepository.findByEmail(email);
+
+    // Always return successfully if user does not exist.
+    // This prevents account enumeration.
+    if (!user) {
+      return;
+    }
+
+    if (!user.isActive) {
+      return;
+    }
+
+    // Invalidate any previous active reset tokens.
+    await this.passwordResetTokenRepository.invalidateActiveTokens(user.id);
+
+    const rawToken = this.generatePasswordResetToken();
+    const tokenHash = this.hashPasswordResetToken(rawToken);
+    const expiresAt = this.getPasswordResetTokenExpiryDate();
+
+    const resetToken = this.passwordResetTokenRepository.create({
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+      usedAt: null,
+    });
+
+    await this.passwordResetTokenRepository.save(resetToken);
+
+    const frontendUrl = this.configService.getOrThrow<string>('FRONTEND_URL');
+
+    const resetUrl = `${frontendUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+
+    await this.mailService.send({
+      to: user.email,
+      subject: 'Reset your password',
+      html: this.buildPasswordResetEmail(user.firstName, resetUrl),
+    });
+  }
+
+  private buildPasswordResetEmail(firstName: string, resetUrl: string): string {
+    return `
+    <!DOCTYPE html>
+    <html>
+      <body>
+        <h2>Reset your password</h2>
+
+        <p>Hello ${firstName},</p>
+
+        <p>
+          We received a request to reset your password.
+        </p>
+
+        <p>
+          Click the button below to choose a new password.
+        </p>
+
+        <p>
+          <a
+            href="${resetUrl}"
+            style="
+              display: inline-block;
+              padding: 12px 20px;
+              background-color: #000;
+              color: #fff;
+              text-decoration: none;
+              border-radius: 6px;
+            "
+          >
+            Reset Password
+          </a>
+        </p>
+
+        <p>
+          This link expires in 30 minutes.
+        </p>
+
+        <p>
+          If you didn't request a password reset, you can safely ignore
+          this email.
+        </p>
+      </body>
+    </html>
+  `;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = this.hashPasswordResetToken(token);
+
+    const resetToken = await this.passwordResetTokenRepository.findValidByTokenHash(tokenHash);
+
+    if (!resetToken) {
+      throw new UnauthorizedException(MESSAGES.AUTH.INVALID_OR_EXPIRED_PASSWORD_RESET_TOKEN);
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, AUTH_CONSTANTS.HASH_SALT_ROUNDS);
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.getRepository(User).update(
+        {
+          id: resetToken.userId,
+        },
+        {
+          passwordHash,
+        },
+      );
+
+      await manager.getRepository(PasswordResetToken).update(
+        {
+          id: resetToken.id,
+        },
+        {
+          usedAt: new Date(),
+        },
+      );
+
+      await this.refreshTokenRepository.revokeAllUserTokens(resetToken.userId, manager);
+    });
   }
 }

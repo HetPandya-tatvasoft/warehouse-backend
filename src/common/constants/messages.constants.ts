@@ -8,6 +8,9 @@ export const MESSAGES = {
     INVALID_REFRESH_TOKEN: 'Invalid refresh token',
     REFRESH_TOKEN_REVOKED: 'Refresh token revoked',
     REFRESH_TOKEN_EXPIRED: 'Refresh token expired',
+    PASSWORD_RESET_EMAIL_SENT: 'If an account exists for this email, a password reset link has been sent.',
+    PASSWORD_RESET_SUCCESS: 'Your password has been reset successfully.',
+    INVALID_OR_EXPIRED_PASSWORD_RESET_TOKEN: 'The password reset link is invalid or has expired.',
   },
   USER: {
     CREATE_SUCCESS: 'User created successfully',
@@ -116,7 +119,9 @@ export const MESSAGES = {
 
 export const VALIDATION_MESSAGES = {
   USER: {
-    PASSWORD_LENGTH: 'Password must be at least 8 characters long',
+    PASSWORD_LENGTH: 'Password must be between 8 and 100 characters long',
+    PASSWORD_COMPLEXITY:
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
     ASSIGNED_ROLES: 'At least one role must be assigned to the user',
     ROLE_ID_UUID: 'Each role ID must be a valid UUID',
   },
