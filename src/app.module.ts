@@ -33,9 +33,11 @@ import { HealthModule } from './modules/health/health.module';
         password: configService.get<string>('database.password'),
         database: configService.get<string>('database.database'),
 
-        ssl: {
-        rejectUnauthorized: false,
-        },      
+        // ssl: {
+        //   // rejectUnauthorized: false,
+        // },
+
+        ssl: false,
 
         autoLoadEntities: true,
 

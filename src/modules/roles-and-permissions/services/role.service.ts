@@ -60,7 +60,7 @@ export class RoleService {
   async updateRole(id: string, roleDto: RoleUpsertDto, user: ICurrentUserData): Promise<Role> {
     const existingRole = await this.getRoleById(id, user);
 
-    // also one thign - prevent renaming of platform roles
+    // also one thing - prevent renaming of platform roles
 
     if (roleDto.name && roleDto.name !== existingRole.name) {
       const duplicateRole = await this.roleRepository.findByName(roleDto.name, user.tenantId);

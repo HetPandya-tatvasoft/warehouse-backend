@@ -5,5 +5,9 @@ dist
 .env
 .env.*
 coverage
+build/
+Dockerfile*
+.dockerignore
+*.log*
 npm-debug.log*
 pnpm-debug.log*

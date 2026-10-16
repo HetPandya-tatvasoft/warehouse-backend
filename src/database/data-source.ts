@@ -21,6 +21,8 @@ import { Contact } from '../modules/warehouses/entities/contact.entity';
 import { WarehouseContact } from '../modules/warehouses/entities/warehouse-contact.entity';
 import { ProductCategory } from '../modules/settings/product-settings/entities/category.entity';
 import { PasswordResetToken } from '@/modules/auth/entities/password-reset-token.entity';
+import { ProductAttribute } from '../modules/settings/product-settings/entities/attribute.entity';
+import { ProductAttributeValue } from '../modules/settings/product-settings/entities/attribute-value.entity';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -32,9 +34,11 @@ const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
 
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  // ssl: {
+  //   rejectUnauthorized: false,
+  // },
+
+  ssl: false,
 
   synchronize: false,
   logging: false,
@@ -60,6 +64,8 @@ const AppDataSource = new DataSource({
     Contact,
     WarehouseContact,
     ProductCategory,
+    ProductAttribute,
+    ProductAttributeValue,
   ],
 
   migrations:
