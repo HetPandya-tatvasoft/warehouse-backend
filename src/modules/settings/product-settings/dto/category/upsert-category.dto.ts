@@ -17,7 +17,7 @@ export class UpsertCategoryDto {
 
   @IsOptional()
   @IsEnum(ProductCategoryStatus)
-  status?: ProductCategoryStatus = ProductCategoryStatus.ACTIVE;
+  status?: ProductCategoryStatus;
 
   @IsOptional()
   @IsUUID('4')

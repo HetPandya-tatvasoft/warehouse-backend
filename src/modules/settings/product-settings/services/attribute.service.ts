@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import type { EntityManager } from 'typeorm';
 import { isUUID } from 'class-validator';
@@ -7,6 +7,7 @@ import type { IPaginatedResponse } from '@/common/types/api-response.interface';
 import { MESSAGES } from '@/common/constants/messages.constants';
 import { AttributeRepository } from '../repositories/attribute.repository';
 import { AttributeValueRepository } from '../repositories/attribute-value.repository';
+import { CategoryAttributeRepository } from '../repositories/category-attribute.repository';
 import type { UpsertAttributeDto } from '../dto/attribute/upsert-attribute.dto';
 import type { AttributePaginationQueryDto } from '../dto/attribute/attribute-pagination.dto';
 import type { AttributeResponseDto } from '../dto/attribute/attribute-response.dto';
@@ -26,6 +27,7 @@ export class AttributeService {
     private readonly dataSource: DataSource,
     private readonly attributeRepository: AttributeRepository,
     private readonly attributeValueRepository: AttributeValueRepository,
+    private readonly categoryAttributeRepository: CategoryAttributeRepository,
   ) {}
 
   async createAttribute(dto: UpsertAttributeDto, user: ICurrentUserData): Promise<AttributeResponseDto> {
@@ -60,7 +62,7 @@ export class AttributeService {
       tenantId,
       page,
       pageSize,
-      sortBy === 'name' ? 'name' : 'createdAt',
+      sortBy,
       sortOrder,
       search,
       status,
@@ -132,6 +134,13 @@ export class AttributeService {
           throw new NotFoundException({
             message: MESSAGES.PRODUCT_ATTRIBUTE.NOT_FOUND,
             errorCode: 'ATTRIBUTE_NOT_FOUND',
+          });
+        }
+        const mappingCount = await this.categoryAttributeRepository.countByAttributeId(tenantId, id, manager);
+        if (mappingCount > 0) {
+          throw new ConflictException({
+            message: MESSAGES.CATEGORY_ATTRIBUTE.DELETE_BLOCKED_HAS_MAPPINGS,
+            errorCode: 'ATTRIBUTE_ASSIGNED_TO_CATEGORIES',
           });
         }
         // Ownership is validated and locked until both deletions commit.

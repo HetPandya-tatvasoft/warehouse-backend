@@ -71,12 +71,13 @@ export class AttributeValueService {
   ): Promise<IPaginatedResponse<AttributeValueResponseDto>> {
     const tenantId = this.requireTenant(user);
     await this.requireParent(attributeId, tenantId);
-    const { page = 1, pageSize = 10, sortOrder = 'DESC', search, status } = query;
+    const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC', search, status } = query;
     const { items, ...paginationData } = await this.attributeValueRepository.findPaginated(
       attributeId,
       tenantId,
       page,
       pageSize,
+      sortBy,
       sortOrder,
       search,
       status,

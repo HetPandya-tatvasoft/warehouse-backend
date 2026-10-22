@@ -19,6 +19,7 @@ export class AttributeValueRepository extends BaseRepository<ProductAttributeVal
     tenantId: string,
     page: number,
     pageSize: number,
+    sortBy: 'label' | 'status' | 'createdAt' | 'updatedAt' = 'createdAt',
     sortOrder: 'ASC' | 'DESC' = 'DESC',
     search?: string,
     status?: AttributeStatus,
@@ -36,13 +37,21 @@ export class AttributeValueRepository extends BaseRepository<ProductAttributeVal
       where.label = ILike(`%${escapedSearch}%`);
     }
     const relations: FindOptionsRelations<ProductAttributeValue> = { attribute: true };
+    const allowedSortFields: Record<string, keyof ProductAttributeValue> = {
+      label: 'label',
+      status: 'status',
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt',
+    };
+    const sortField = allowedSortFields[sortBy] || 'createdAt';
+
     return this.findAndCountPaginated(
       page,
       pageSize,
       {
         where,
         relations,
-        order: { createdAt: sortOrder, id: sortOrder },
+        order: { [sortField]: sortOrder, id: sortOrder },
       },
       manager,
     );

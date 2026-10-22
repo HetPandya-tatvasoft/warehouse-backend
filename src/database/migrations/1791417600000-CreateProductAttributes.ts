@@ -7,27 +7,6 @@ export class CreateProductAttributes1791417600000 implements MigrationInterface 
   name = 'CreateProductAttributes1791417600000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`
-      DO $$
-      BEGIN
-        IF current_setting('server_encoding') <> 'UTF8' THEN
-          RAISE EXCEPTION 'Product attributes require UTF8 server encoding';
-        END IF;
-        IF to_regprocedure('uuid_generate_v4()') IS NULL THEN
-          RAISE EXCEPTION 'Product attributes require uuid_generate_v4()';
-        END IF;
-        IF NOT EXISTS (
-          SELECT 1
-          FROM pg_collation
-          WHERE collname = 'und-x-icu'
-            AND collprovider = 'i'
-            AND collisdeterministic = true
-        ) THEN
-          RAISE EXCEPTION 'Product attributes require deterministic pg_catalog.und-x-icu collation';
-        END IF;
-      END $$;
-    `);
-
     await queryRunner.query(`CREATE TYPE "public"."product_attribute_status_enum" AS ENUM('ACTIVE', 'INACTIVE')`);
     await queryRunner.query(`
       CREATE TABLE "product_attributes" (

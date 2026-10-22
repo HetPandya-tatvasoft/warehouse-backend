@@ -1,20 +1,28 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { ILike, IsNull } from 'typeorm';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { DataSource, ILike, IsNull } from 'typeorm';
+import type { EntityManager } from 'typeorm';
+import { isUUID } from 'class-validator';
 import { CategoryRepository } from './repositories/category.repository';
+import { CategoryAttributeRepository } from './repositories/category-attribute.repository';
 import { UpsertCategoryDto } from './dto/category/upsert-category.dto';
 import { CategoryPaginationQueryDto } from './dto/category/category-pagination.dto';
 import { CategoryResponseDto } from './dto/category/category-response.dto';
 import { CategoryMapper } from './mappers/category.mapper';
+import { ProductCategoryStatus } from './enums/categoryStatus.enum';
 import { ICurrentUserData } from '@/modules/auth/types/jwt-payload.interface';
 import { IPaginatedResponse } from '@/common/types/api-response.interface';
 import { MESSAGES } from '@/common/constants/messages.constants';
 
 @Injectable()
 export class CategoryService {
-  constructor(private readonly categoryRepository: CategoryRepository) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly categoryRepository: CategoryRepository,
+    private readonly categoryAttributeRepository: CategoryAttributeRepository,
+  ) {}
 
   async createCategory(dto: UpsertCategoryDto, user: ICurrentUserData): Promise<CategoryResponseDto> {
-    const tenantId = user.tenantId!;
+    const tenantId = this.requireTenant(user);
 
     // Validate parent if provided
     if (dto.parentId) {
@@ -29,7 +37,7 @@ export class CategoryService {
       parentId: dto.parentId || null,
       name: dto.name,
       description: dto.description || null,
-      status: dto.status,
+      status: dto.status ?? ProductCategoryStatus.ACTIVE,
     });
 
     const savedCategory = await this.categoryRepository.save(categoryInstance);
@@ -40,7 +48,7 @@ export class CategoryService {
     query: CategoryPaginationQueryDto,
     user: ICurrentUserData,
   ): Promise<IPaginatedResponse<CategoryResponseDto>> {
-    const tenantId = user.tenantId!;
+    const tenantId = this.requireTenant(user);
     const { page = 1, pageSize = 10, sortBy = 'createdAt', sortOrder = 'DESC', search, status } = query;
 
     const { items, ...paginationData } = await this.categoryRepository.findPaginated(
@@ -60,7 +68,7 @@ export class CategoryService {
   }
 
   async getCategoryById(id: string, user: ICurrentUserData): Promise<CategoryResponseDto> {
-    const tenantId = user.tenantId!;
+    const tenantId = this.requireTenant(user);
     const category = await this.categoryRepository.findOne({
       where: { id, tenantId },
     });
@@ -73,7 +81,7 @@ export class CategoryService {
   }
 
   async updateCategory(id: string, dto: UpsertCategoryDto, user: ICurrentUserData): Promise<CategoryResponseDto> {
-    const tenantId = user.tenantId!;
+    const tenantId = this.requireTenant(user);
     const category = await this.categoryRepository.findOne({
       where: { id, tenantId },
     });
@@ -109,12 +117,12 @@ export class CategoryService {
     }
 
     await this.categoryRepository.update(
-      { id },
+      { id, tenantId },
       {
         name: dto.name,
         parentId: dto.parentId !== undefined ? dto.parentId || null : undefined,
         description: dto.description !== undefined ? dto.description : undefined,
-        status: dto.status,
+        status: dto.status !== undefined ? dto.status : category.status,
       },
     );
 
@@ -123,7 +131,7 @@ export class CategoryService {
   }
 
   async deleteCategory(id: string, user: ICurrentUserData): Promise<void> {
-    const tenantId = user.tenantId!;
+    const tenantId = this.requireTenant(user);
     const category = await this.categoryRepository.findOne({
       where: { id, tenantId },
     });
@@ -140,11 +148,14 @@ export class CategoryService {
       throw new ConflictException(MESSAGES.PRODUCT_CATEGORY.HAS_CHILDREN);
     }
 
-    await this.categoryRepository.delete({ id });
+    await this.dataSource.transaction<void>('READ COMMITTED', async (manager: EntityManager): Promise<void> => {
+      await this.categoryAttributeRepository.deleteByCategoryId(tenantId, id, manager);
+      await this.categoryRepository.delete({ id, tenantId }, manager);
+    });
   }
 
   async getCategoryTree(user: ICurrentUserData): Promise<CategoryResponseDto[]> {
-    const tenantId = user.tenantId!;
+    const tenantId = this.requireTenant(user);
     const categories = await this.categoryRepository.find({
       where: { tenantId },
     });
@@ -223,5 +234,15 @@ export class CategoryService {
       currentParentId = parent.parentId;
     }
     return false;
+  }
+
+  private requireTenant(user: ICurrentUserData): string {
+    if (typeof user?.tenantId !== 'string' || !isUUID(user.tenantId)) {
+      throw new BadRequestException({
+        message: MESSAGES.PRODUCT_CATEGORY.ACCESS_DENIED,
+        errorCode: 'TENANT_CONTEXT_REQUIRED',
+      });
+    }
+    return user.tenantId;
   }
 }

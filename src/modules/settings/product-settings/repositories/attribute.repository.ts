@@ -18,7 +18,7 @@ export class AttributeRepository extends BaseRepository<ProductAttribute> {
     tenantId: string,
     page: number,
     pageSize: number,
-    sortBy: 'createdAt' | 'name' = 'createdAt',
+    sortBy: 'name' | 'status' | 'createdAt' | 'updatedAt' = 'createdAt',
     sortOrder: 'ASC' | 'DESC' = 'DESC',
     search?: string,
     status?: AttributeStatus,
@@ -32,12 +32,20 @@ export class AttributeRepository extends BaseRepository<ProductAttribute> {
       const escapedSearch = search.trim().replace(/[\\%_]/g, '\\$&');
       where.name = ILike(`%${escapedSearch}%`);
     }
+    const allowedSortFields: Record<string, keyof ProductAttribute> = {
+      name: 'name',
+      status: 'status',
+      createdAt: 'createdAt',
+      updatedAt: 'updatedAt',
+    };
+    const sortField = allowedSortFields[sortBy] || 'createdAt';
+
     return this.findAndCountPaginated(
       page,
       pageSize,
       {
         where,
-        order: sortBy === 'name' ? { name: sortOrder, id: sortOrder } : { createdAt: sortOrder, id: sortOrder },
+        order: { [sortField]: sortOrder, id: sortOrder },
       },
       manager,
     );

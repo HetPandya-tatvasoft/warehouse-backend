@@ -11,5 +11,5 @@ export class UpsertAttributeDto {
 
   @IsOptional()
   @IsEnum(AttributeStatus)
-  status?: AttributeStatus = AttributeStatus.ACTIVE;
+  status?: AttributeStatus;
 }

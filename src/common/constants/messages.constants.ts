@@ -95,6 +95,15 @@ export const MESSAGES = {
     CIRCULAR_DEPENDENCY: 'A category cannot be a descendant of itself or create a circular dependency',
     HAS_CHILDREN: 'Cannot delete category because it has child categories',
   },
+  CATEGORY_ATTRIBUTE: {
+    ASSIGN_SUCCESS: 'Attributes assigned to category successfully.',
+    UNASSIGN_SUCCESS: 'Attribute unassigned from category successfully.',
+    FETCH_DIRECT_SUCCESS: 'Direct category attributes fetched successfully.',
+    FETCH_EFFECTIVE_SUCCESS: 'Effective category attributes fetched successfully.',
+    FETCH_ELIGIBLE_SUCCESS: 'Eligible category attributes fetched successfully.',
+    NOT_ASSIGNED: 'Attribute is not directly assigned to this category.',
+    DELETE_BLOCKED_HAS_MAPPINGS: 'Attribute cannot be deleted because it is assigned to one or more categories.',
+  },
   COMMON: {
     FORBIDDEN: 'You do not have permission to access this resource',
     INTERNAL_SERVER_ERROR: 'Internal server error',
@@ -121,6 +130,16 @@ export const MESSAGES = {
     DELETE_SUCCESS: 'Attribute value permanently deleted.',
     NOT_FOUND: 'Attribute value not found.',
     STATUS_NULL: 'status must not be null.',
+  },
+  PRODUCT_BRAND: {
+    CREATE_SUCCESS: 'Brand created successfully.',
+    FETCH_SUCCESS: 'Brand fetched successfully.',
+    FETCH_ALL_SUCCESS: 'Brands fetched successfully.',
+    UPDATE_SUCCESS: 'Brand updated successfully.',
+    DELETE_SUCCESS: 'Brand permanently deleted.',
+    NOT_FOUND: 'Brand not found.',
+    NAME_EXISTS: 'Brand with this name already exists.',
+    TENANT_REQUIRED: 'Tenant context is required.',
   },
   REGION: {
     FETCH_COUNTRIES_SUCCESS: 'Countries fetched successfully',

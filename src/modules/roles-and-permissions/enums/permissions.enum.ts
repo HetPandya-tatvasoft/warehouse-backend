@@ -6,6 +6,7 @@ export enum Page {
   Products = 'Products',
   ProductCategories = 'ProductCategories',
   ProductAttributes = 'ProductAttributes',
+  Brands = 'Brands',
 }
 
 export enum Permission {

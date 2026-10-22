@@ -23,6 +23,8 @@ import { ProductCategory } from '../modules/settings/product-settings/entities/c
 import { PasswordResetToken } from '@/modules/auth/entities/password-reset-token.entity';
 import { ProductAttribute } from '../modules/settings/product-settings/entities/attribute.entity';
 import { ProductAttributeValue } from '../modules/settings/product-settings/entities/attribute-value.entity';
+import { ProductCategoryAttribute } from '../modules/settings/product-settings/entities/category-attribute.entity';
+import { ProductBrand } from '../modules/settings/product-settings/entities/brand.entity';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -66,6 +68,8 @@ const AppDataSource = new DataSource({
     ProductCategory,
     ProductAttribute,
     ProductAttributeValue,
+    ProductCategoryAttribute,
+    ProductBrand,
   ],
 
   migrations:
