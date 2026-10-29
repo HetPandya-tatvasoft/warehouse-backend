@@ -22,6 +22,11 @@ import { BrandsController } from './controllers/brands.controller';
 import { BrandService } from './services/brand.service';
 import { BrandRepository } from './repositories/brand.repository';
 
+import { UnitOfMeasure } from './entities/unit-of-measure.entity';
+import { UnitsOfMeasureController } from './controllers/units-of-measure.controller';
+import { UnitOfMeasureService } from './services/unit-of-measure.service';
+import { UnitOfMeasureRepository } from './repositories/unit-of-measure.repository';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -30,10 +35,17 @@ import { BrandRepository } from './repositories/brand.repository';
       ProductAttributeValue,
       ProductCategoryAttribute,
       ProductBrand,
+      UnitOfMeasure,
     ]),
     RolesAndPermissionsModule,
   ],
-  controllers: [CategoryController, AttributesController, AttributeValuesController, BrandsController],
+  controllers: [
+    CategoryController,
+    AttributesController,
+    AttributeValuesController,
+    BrandsController,
+    UnitsOfMeasureController,
+  ],
   providers: [
     CategoryService,
     CategoryRepository,
@@ -45,6 +57,8 @@ import { BrandRepository } from './repositories/brand.repository';
     CategoryAttributeRepository,
     BrandService,
     BrandRepository,
+    UnitOfMeasureService,
+    UnitOfMeasureRepository,
   ],
   exports: [
     TypeOrmModule,
@@ -56,6 +70,8 @@ import { BrandRepository } from './repositories/brand.repository';
     CategoryAttributeRepository,
     BrandService,
     BrandRepository,
+    UnitOfMeasureService,
+    UnitOfMeasureRepository,
   ],
 })
 export class ProductSettingsModule {}

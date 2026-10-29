@@ -16,6 +16,7 @@ export class PageSeeder {
       { name: 'ProductCategories', description: 'Product category management page' },
       { name: 'ProductAttributes', description: 'Product attribute and value management page' },
       { name: 'Brands', description: 'Brand management page' },
+      { name: 'UnitsOfMeasure', description: 'Unit of measure management page' },
     ];
 
     await this.dataSource.transaction(async (transactionalEntityManager) => {

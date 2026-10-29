@@ -25,7 +25,7 @@ import { ProductAttribute } from '../modules/settings/product-settings/entities/
 import { ProductAttributeValue } from '../modules/settings/product-settings/entities/attribute-value.entity';
 import { ProductCategoryAttribute } from '../modules/settings/product-settings/entities/category-attribute.entity';
 import { ProductBrand } from '../modules/settings/product-settings/entities/brand.entity';
-
+import { UnitOfMeasure } from '../modules/settings/product-settings/entities/unit-of-measure.entity';
 const AppDataSource = new DataSource({
   type: 'postgres',
 
@@ -70,6 +70,7 @@ const AppDataSource = new DataSource({
     ProductAttributeValue,
     ProductCategoryAttribute,
     ProductBrand,
+    UnitOfMeasure,
   ],
 
   migrations:

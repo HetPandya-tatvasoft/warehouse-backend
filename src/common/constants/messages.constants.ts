@@ -141,6 +141,17 @@ export const MESSAGES = {
     NAME_EXISTS: 'Brand with this name already exists.',
     TENANT_REQUIRED: 'Tenant context is required.',
   },
+  PRODUCT_UNIT_OF_MEASURE: {
+    CREATE_SUCCESS: 'Unit of measure created successfully.',
+    FETCH_SUCCESS: 'Unit of measure fetched successfully.',
+    FETCH_ALL_SUCCESS: 'Units of measure fetched successfully.',
+    UPDATE_SUCCESS: 'Unit of measure updated successfully.',
+    DELETE_SUCCESS: 'Unit of measure permanently deleted.',
+    NOT_FOUND: 'Unit of measure not found.',
+    NAME_EXISTS: 'Unit of measure with this name already exists.',
+    CODE_EXISTS: 'Unit of measure with this code already exists.',
+    TENANT_REQUIRED: 'Tenant context is required.',
+  },
   REGION: {
     FETCH_COUNTRIES_SUCCESS: 'Countries fetched successfully',
     FETCH_COUNTRY_SUCCESS: 'Country fetched successfully',
