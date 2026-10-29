@@ -25,7 +25,12 @@ import { ProductAttribute } from '../modules/settings/product-settings/entities/
 import { ProductAttributeValue } from '../modules/settings/product-settings/entities/attribute-value.entity';
 import { ProductCategoryAttribute } from '../modules/settings/product-settings/entities/category-attribute.entity';
 import { ProductBrand } from '../modules/settings/product-settings/entities/brand.entity';
-
+import { UnitOfMeasure } from '../modules/settings/product-settings/entities/unit-of-measure.entity';
+import { Product } from '../modules/products/entities/product.entity';
+import { ProductAttributeConfig } from '../modules/products/entities/product-attribute-config.entity';
+import { ProductDynamicAttributeValueConfig } from '../modules/products/entities/product-dynamic-attribute-value-config.entity';
+import { ProductVariant } from '../modules/products/entities/product-variant.entity';
+import { ProductVariantAttributeValue } from '../modules/products/entities/product-variant-attribute-value.entity';
 const AppDataSource = new DataSource({
   type: 'postgres',
 
@@ -70,6 +75,12 @@ const AppDataSource = new DataSource({
     ProductAttributeValue,
     ProductCategoryAttribute,
     ProductBrand,
+    UnitOfMeasure,
+    Product,
+    ProductAttributeConfig,
+    ProductDynamicAttributeValueConfig,
+    ProductVariant,
+    ProductVariantAttributeValue,
   ],
 
   migrations:
