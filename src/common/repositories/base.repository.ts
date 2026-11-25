@@ -72,6 +72,10 @@ export abstract class BaseRepository<TEntity extends ObjectLiteral> {
     };
   }
 
+  async count(options?: FindManyOptions<TEntity>, manager?: EntityManager): Promise<number> {
+    return this.getRepository(manager).count(options);
+  }
+
   async delete(criteria: FindOptionsWhere<TEntity>, manager?: EntityManager): Promise<void> {
     await this.getRepository(manager).delete(criteria);
   }

@@ -15,6 +15,7 @@ import { AttributeMapper } from '../mappers/attribute.mapper';
 import { AttributeStatus } from '../enums/attribute-status.enum';
 import { attributeDuplicate, handleAttributeWriteError } from '../errors/attribute-conflict.util';
 import type { ProductAttribute } from '../entities/attribute.entity';
+import { ProductAttributeConfig } from '@/modules/products/entities/product-attribute-config.entity';
 
 interface IAttributeWriteResult {
   savedAttribute: ProductAttribute;
@@ -141,6 +142,16 @@ export class AttributeService {
           throw new ConflictException({
             message: MESSAGES.CATEGORY_ATTRIBUTE.DELETE_BLOCKED_HAS_MAPPINGS,
             errorCode: 'ATTRIBUTE_ASSIGNED_TO_CATEGORIES',
+          });
+        }
+
+        const productConfigCount = await manager.getRepository(ProductAttributeConfig).count({
+          where: { tenantId, attributeId: id },
+        });
+        if (productConfigCount > 0) {
+          throw new ConflictException({
+            message: 'Attribute cannot be deleted because it is referenced by one or more products.',
+            errorCode: 'ATTRIBUTE_REFERENCED_BY_PRODUCTS',
           });
         }
         // Ownership is validated and locked until both deletions commit.

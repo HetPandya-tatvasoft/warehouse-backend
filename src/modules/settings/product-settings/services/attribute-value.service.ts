@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { isUUID } from 'class-validator';
 import type { EntityManager } from 'typeorm';
@@ -15,6 +15,8 @@ import { AttributeStatus } from '../enums/attribute-status.enum';
 import type { ProductAttribute } from '../entities/attribute.entity';
 import type { ProductAttributeValue } from '../entities/attribute-value.entity';
 import { attributeDuplicate, handleAttributeWriteError } from '../errors/attribute-conflict.util';
+import { ProductAttributeConfigValue } from '@/modules/products/entities/product-attribute-config-value.entity';
+import { ProductVariantAttributeValue } from '@/modules/products/entities/product-variant-attribute-value.entity';
 
 interface IAttributeValueWriteResult {
   savedValue: ProductAttributeValue;
@@ -174,6 +176,21 @@ export class AttributeValueService {
             errorCode: 'ATTRIBUTE_VALUE_NOT_FOUND',
           });
         }
+
+        const configRefCount = await manager.getRepository(ProductAttributeConfigValue).count({
+          where: { tenantId, attributeValueId: valueId },
+        });
+        const variantRefCount = await manager.getRepository(ProductVariantAttributeValue).count({
+          where: { tenantId, attributeValueId: valueId },
+        });
+
+        if (configRefCount > 0 || variantRefCount > 0) {
+          throw new ConflictException({
+            message: 'Attribute value cannot be deleted because it is referenced by one or more products or variants.',
+            errorCode: 'ATTRIBUTE_VALUE_REFERENCED_BY_PRODUCTS',
+          });
+        }
+
         await this.attributeValueRepository.delete({ id: valueId, attributeId }, manager);
       });
     } catch (error) {

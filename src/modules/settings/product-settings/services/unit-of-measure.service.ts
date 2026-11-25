@@ -12,6 +12,7 @@ import type { UnitOfMeasureResponseDto } from '../dto/unit-of-measure/unit-of-me
 import { UnitOfMeasureMapper } from '../mappers/unit-of-measure.mapper';
 import { UnitOfMeasureStatus } from '../enums/unit-of-measure-status.enum';
 import type { UnitOfMeasure } from '../entities/unit-of-measure.entity';
+import { Product } from '@/modules/products/entities/product.entity';
 
 @Injectable()
 export class UnitOfMeasureService {
@@ -137,6 +138,25 @@ export class UnitOfMeasureService {
             throw new NotFoundException(MESSAGES.PRODUCT_UNIT_OF_MEASURE.NOT_FOUND);
           }
 
+          // Once a UOM is referenced, prevent changes to its code and allowsFractionalQuantity
+          const isCodeChanging = dto.code !== undefined && dto.code !== unit.code;
+          const isFractionalChanging =
+            dto.allowsFractionalQuantity !== undefined &&
+            dto.allowsFractionalQuantity !== unit.allowsFractionalQuantity;
+
+          if (isCodeChanging || isFractionalChanging) {
+            const productRefCount = await manager.getRepository(Product).count({
+              where: { tenantId, baseUomId: id },
+            });
+            if (productRefCount > 0) {
+              throw new ConflictException({
+                message:
+                  'Cannot modify code or fractional quantity setting of a unit of measure referenced by existing products.',
+                errorCode: 'UOM_REFERENCED_IMMUTABLE',
+              });
+            }
+          }
+
           if (dto.name !== undefined) {
             const nameConflict = await this.uomRepository.findNameConflict(tenantId, dto.name, id, manager);
             if (nameConflict) {
@@ -189,6 +209,16 @@ export class UnitOfMeasureService {
 
         if (!unit) {
           throw new NotFoundException(MESSAGES.PRODUCT_UNIT_OF_MEASURE.NOT_FOUND);
+        }
+
+        const productRefCount = await manager.getRepository(Product).count({
+          where: { tenantId, baseUomId: id },
+        });
+        if (productRefCount > 0) {
+          throw new ConflictException({
+            message: 'Cannot delete unit of measure because it is referenced by one or more products.',
+            errorCode: 'UOM_REFERENCED_BY_PRODUCTS',
+          });
         }
 
         await this.uomRepository.delete({ id, tenantId }, manager);

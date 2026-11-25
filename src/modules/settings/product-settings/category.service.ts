@@ -12,6 +12,7 @@ import { ProductCategoryStatus } from './enums/categoryStatus.enum';
 import { ICurrentUserData } from '@/modules/auth/types/jwt-payload.interface';
 import { IPaginatedResponse } from '@/common/types/api-response.interface';
 import { MESSAGES } from '@/common/constants/messages.constants';
+import { Product } from '@/modules/products/entities/product.entity';
 
 @Injectable()
 export class CategoryService {
@@ -149,6 +150,16 @@ export class CategoryService {
     }
 
     await this.dataSource.transaction<void>('READ COMMITTED', async (manager: EntityManager): Promise<void> => {
+      const productRefCount = await manager.getRepository(Product).count({
+        where: { tenantId, categoryId: id },
+      });
+      if (productRefCount > 0) {
+        throw new ConflictException({
+          message: 'Cannot delete category because it is referenced by one or more products.',
+          errorCode: 'CATEGORY_REFERENCED_BY_PRODUCTS',
+        });
+      }
+
       await this.categoryAttributeRepository.deleteByCategoryId(tenantId, id, manager);
       await this.categoryRepository.delete({ id, tenantId }, manager);
     });

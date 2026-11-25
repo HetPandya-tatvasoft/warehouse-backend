@@ -12,6 +12,7 @@ import type { BrandResponseDto } from '../dto/brand/brand-response.dto';
 import { BrandMapper } from '../mappers/brand.mapper';
 import { BrandStatus } from '../enums/brand-status.enum';
 import type { ProductBrand } from '../entities/brand.entity';
+import { Product } from '@/modules/products/entities/product.entity';
 
 @Injectable()
 export class BrandService {
@@ -124,6 +125,17 @@ export class BrandService {
         if (!brand) {
           throw new NotFoundException(MESSAGES.PRODUCT_BRAND.NOT_FOUND);
         }
+
+        const productRefCount = await manager.getRepository(Product).count({
+          where: { tenantId, brandId: id },
+        });
+        if (productRefCount > 0) {
+          throw new ConflictException({
+            message: 'Cannot delete brand because it is referenced by one or more products.',
+            errorCode: 'BRAND_REFERENCED_BY_PRODUCTS',
+          });
+        }
+
         await this.brandRepository.delete({ id, tenantId }, manager);
       });
     } catch (error) {

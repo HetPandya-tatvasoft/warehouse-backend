@@ -152,6 +152,69 @@ export const MESSAGES = {
     CODE_EXISTS: 'Unit of measure with this code already exists.',
     TENANT_REQUIRED: 'Tenant context is required.',
   },
+  PRODUCT: {
+    CREATE_SUCCESS: 'Product created successfully.',
+    FETCH_SUCCESS: 'Product fetched successfully.',
+    FETCH_ALL_SUCCESS: 'Products fetched successfully.',
+    UPDATE_SUCCESS: 'Product updated successfully.',
+    PREVIEW_SUCCESS: 'Variant preview generated successfully.',
+    VARIANTS_ADD_SUCCESS: 'Variants added successfully.',
+    VARIANT_STATUS_UPDATE_SUCCESS: 'Variant status updated successfully.',
+    VARIANT_DELETE_SUCCESS: 'Variant permanently deleted.',
+    NOT_FOUND: 'Product not found.',
+    VARIANT_NOT_FOUND: 'Variant not found.',
+    TENANT_REQUIRED: 'Tenant context is required.',
+    CATEGORY_NOT_FOUND_OR_INACTIVE: 'Category not found or is inactive.',
+    BRAND_NOT_FOUND_OR_INACTIVE: 'Brand not found or is inactive.',
+    UOM_NOT_FOUND_OR_INACTIVE: 'Unit of measure not found or is inactive.',
+    LAST_VARIANT_DELETE_BLOCKED: 'Cannot delete the last variant of a product.',
+    VARIANT_DELETE_BLOCKED_REFERENCED: 'Cannot delete variant because it is referenced by existing records.',
+    VARIANTS_REQUIRED: 'At least one variant must be included.',
+    VARIANTS_TO_ADD_REQUIRED: 'At least one variant must be provided to add.',
+    NO_VARIANTS_REMAINING: 'At least one variant must remain after deduplication.',
+    NO_FIELDS_TO_UPDATE: 'At least one field must be provided for update.',
+    DUPLICATE_VARIANT_COMBINATION: 'Duplicate variant combination submitted.',
+    NO_DYNAMIC_ATTRIBUTES_CONFIGURED: 'Cannot add variant combinations to a product without dynamic attributes.',
+    ATTRIBUTE_NOT_FOUND: (attrId: string) => `Attribute with ID '${attrId}' not found.`,
+    DYNAMIC_ATTRIBUTE_EMPTY_VALUES: (attrName: string) =>
+      `Dynamic attribute "${attrName}" must have at least one selected value.`,
+    DYNAMIC_VALUES_REQUIRED: (attrName: string) =>
+      `Dynamic attribute "${attrName}" must specify at least one dynamic value.`,
+    DYNAMIC_VALUES_INVALID_OR_INACTIVE: (attrName: string) =>
+      `One or more selected dynamic values for attribute "${attrName}" were not found or are inactive.`,
+    DUPLICATE_ATTRIBUTE_SELECTION: (attrId: string) => `Duplicate attribute selection for attribute ID '${attrId}'.`,
+    ATTRIBUTE_NOT_ASSIGNED_TO_CATEGORY: (attrId: string) =>
+      `Attribute with ID '${attrId}' is not assigned to the selected category hierarchy.`,
+    ATTRIBUTE_INACTIVE: (attrName: string) => `Attribute "${attrName}" is inactive and cannot be configured.`,
+    STATIC_VALUE_REQUIRED: (attrName: string) =>
+      `Static attribute "${attrName}" must specify exactly one staticValueId.`,
+    STATIC_VALUE_INVALID_OR_INACTIVE: (attrName: string) =>
+      `Selected value for static attribute "${attrName}" was not found or is inactive.`,
+    DUPLICATE_DYNAMIC_ATTRIBUTE_VALUES: (attrName: string) =>
+      `Duplicate attribute values specified for dynamic attribute "${attrName}".`,
+    SELECTED_DYNAMIC_VALUE_INVALID: (valId: string, attrName: string) =>
+      `Selected dynamic value '${valId}' for attribute "${attrName}" was not found or is inactive.`,
+    SKU_CONFLICT: (expected: string, received: string) =>
+      `Variant candidate SKU conflict. Expected "${expected}", but received "${received}". Please refresh preview and review.`,
+    INVALID_VARIANT_COMBINATION: (count: number) =>
+      `Each variant combination must have exactly one selected value from each of the ${count} configured dynamic attributes.`,
+    INVALID_VARIANT_COMBINATION_VALUE_COUNT: (count: number) =>
+      `Variant combination must contain exactly one value from each of the ${count} configured dynamic attributes.`,
+    MISSING_ATTRIBUTE_IN_COMBINATION: (attrName: string) =>
+      `Variant combination missing value for dynamic attribute "${attrName}".`,
+    SKU_ALREADY_EXISTS: (sku: string) => `SKU "${sku}" is already in use within this tenant.`,
+    SKU_ALREADY_EXISTS_REFRESH: (sku: string) =>
+      `SKU "${sku}" is already in use within this tenant. Please refresh preview.`,
+    ATTRIBUTE_NOT_CONFIGURED_AS_STATIC: (attrId: string) =>
+      `Attribute '${attrId}' is not configured as a static attribute on this product.`,
+    STATIC_VALUE_NOT_FOUND_OR_INACTIVE: (valId: string) => `Static value '${valId}' was not found or is inactive.`,
+    ATTRIBUTE_NOT_DYNAMIC_FOR_PRODUCT: (attrId: string) =>
+      `Attribute '${attrId}' is not an existing dynamic attribute for this product.`,
+    NEW_DYNAMIC_VALUE_NOT_FOUND_OR_INACTIVE: (valId: string) =>
+      `New dynamic value '${valId}' was not found or is inactive.`,
+    VARIANT_COMBINATION_ALREADY_EXISTS: (sku: string) =>
+      `Variant combination with SKU "${sku}" already exists and is active.`,
+  },
   REGION: {
     FETCH_COUNTRIES_SUCCESS: 'Countries fetched successfully',
     FETCH_COUNTRY_SUCCESS: 'Country fetched successfully',
